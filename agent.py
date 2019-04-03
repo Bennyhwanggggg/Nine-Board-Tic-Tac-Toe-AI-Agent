@@ -8,21 +8,36 @@ import time
 
 class Agent:
   def __init__(self):
-    self.board = []  # TODO: make this tic tac toe board?
-    self.action_map = {
-      'init': self.init,
-      'start': self.start,
-      'second_move': self.second_move,
-      'third_move': self.third_move,
-      'last_move': self.last_move,
-      'win': self.win,
-      'loss': self.loss,
-      'draw': self.draw,
-      'end': self.end
-    }
+    # Initiate a tic tac toe board where each list represent a board. There are
+    # 9 boards in total
+    self.board = [['.' for _ in range(10)] for _ in range(10)]
 
   def init(self):
-    pass
+    """On init, we reset everything.
+    """
+    self.reset_board()
+    return
+
+  def reset_board(self):
+    self.board = [['.' for _ in range(10)] for _ in range(10)]
+
+  def print_board_row(self, a, b, c, i, j, k):
+    print(' {} {} {} '.format(self.board[a][i], self.board[a][j], self.board[a][k]), end='|')
+    print(' {} {} {} '.format(self.board[b][i], self.board[b][j], self.board[b][k]), end='|')
+    print(' {} {} {} '.format(self.board[c][i], self.board[c][j], self.board[c][k]), end='|\n')
+
+  def print_board(self):
+    self.print_board_row(1, 2, 3, 1, 2, 3)
+    self.print_board_row(1, 2, 3, 4, 5, 6)
+    self.print_board_row(1, 2, 3, 7, 8, 9)
+    print(' ------+-------+-------')
+    self.print_board_row(4, 5, 6, 1, 2, 3)
+    self.print_board_row(4, 5, 6, 4, 5, 6)
+    self.print_board_row(4, 5, 6, 7, 8, 9)
+    print(' ------+-------+-------')
+    self.print_board_row(7, 8, 9, 1, 2, 3)
+    self.print_board_row(7, 8, 9, 4, 5, 6)
+    self.print_board_row(7, 8, 9, 7, 8, 9)
 
   def start(self, player):
     pass
@@ -90,6 +105,8 @@ if __name__ == '__main__':
   port = args.p
 
   agent = Agent()
+  agent.print_board()
+  sys.exit()
   
   client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
   client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
