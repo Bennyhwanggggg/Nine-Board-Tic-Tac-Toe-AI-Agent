@@ -57,7 +57,7 @@ class Agent:
     self.m = 0
     self.move[self.m] = 0
     self.player = player
-    print('Agent is starting. Player is:',self.player)
+    print('Agent is starting. Player is:', self.player)
     return None
 
   def second_move(self, board_num, prev_move):
@@ -70,7 +70,7 @@ class Agent:
     self.move[self.m] = this_move
     self.board[prev_move][this_move] = self.player
     print('Agent ran second move and the board now looks like:')
-    # self.print_board()
+    self.print_board()
     return this_move
 
 
@@ -85,7 +85,7 @@ class Agent:
     self.move[self.m] = this_move
     self.board[self.move[self.m-1]][this_move] = self.player
     print('Agent ran third move and the board now looks like:')
-    # self.print_board()
+    self.print_board()
     return this_move
 
   def next_move(self, prev_move):
@@ -99,6 +99,7 @@ class Agent:
     self.move[self.m] = this_move
     self.board[self.move[self.m-1]][this_move] = self.player
     print('Agent ran next move and the board now looks like:')
+    self.print_board()
     return this_move
 
   def last_move(self, prev_move):
@@ -106,6 +107,7 @@ class Agent:
     self.move[self.m] = prev_move
     self.board[self.move[self.m-1]][self.move[self.m]] = 'o' if self.player == 'x' else 'x'
     print('Agent ran last move and the board now looks like:')
+    self.print_board()
 
   def win(self, cause):
     self.result = 'WIN'

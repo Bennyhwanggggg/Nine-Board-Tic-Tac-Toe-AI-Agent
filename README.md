@@ -102,8 +102,9 @@ python3 agent.py -p 23232
 ./lookt -p 23232
 ```
 or, using a shell script:
+```
 ./playpy.sh lookt 23232
-
+```
 
 ## Writing a Player
 Your task is to write a program to play the game of nine-board tic-tac-toe as well as you can.
