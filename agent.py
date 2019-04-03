@@ -7,8 +7,14 @@ import re
 import time
 import random
 import datetime
+import logging
 
 MAX_MOVE = 81
+
+class Point:
+  def __init__(self, board_num, pos):
+    self.board_num = board_num
+    self.pos = pos
 
 class Agent:
   def __init__(self):
@@ -18,6 +24,70 @@ class Agent:
     self.player, self.m = None, None
     self.move = [-1]*MAX_MOVE
     self.result, self.cause = None, None
+    self.scores = []
+
+  def calculate_heuristic_score(self, mini_board):
+    """Calculate the heuristic function's value
+    score = Number of row/column/diagonal opponent can win -  Number of row/column/diagonal player can win 
+    """
+    score = 0
+    # row score
+    score += calculate_score(mini_board[0], mini_board[1], mini_board[2])
+    score += calculate_score(mini_board[3], mini_board[4], mini_board[5])
+    score += calculate_score(mini_board[6], mini_board[7], mini_board[8])
+
+    # column score
+    score += calculate_score(mini_board[0], mini_board[3], mini_board[6])
+    score += calculate_score(mini_board[1], mini_board[4], mini_board[7])
+    score += calculate_score(mini_board[2], mini_board[5], mini_board[8])
+
+    # diagonal score
+    score += calculate_score(mini_board[0], mini_board[4], mini_board[8])
+    score += calculate_score(mini_board[2], mini_board[4], mini_board[6])
+    return score
+
+  def calculate_score(self, a, b, c):
+    player_win, player_lose = 0, 0
+    if a == self.player:
+      player_win += 1
+    elif a != '.':
+      player_lose += 1
+    if b == self.player:
+      player_win += 1
+    elif b != '.':
+      player_lose += 1
+    if c == self.player:
+      player_win += 1
+    elif c != '.':
+      player_lose += 1
+
+    # Check who has the advantage and return a relative score
+    if player_lose == 3:
+      return -100
+    elif player_win == 3:
+      return 100
+    elif player_win == 0 and player_lose == 2:
+      return -1
+    elif player_win == 2 and player_lose == 0:
+      return 1
+    elif player_win == 1 and player_lose == 0:
+      return 1
+    elif player_win == 0 and player_lose == 1:
+      return -1
+    return 0  # No one has an advantage in other cases so return a neutral value
+
+  def get_available_moves(self, prev_move):
+    mini_board = self.board[prev_move]
+    available_moves = []
+    for i in range(len(mini_board)):
+      if mini_board[i] == '.':
+        available_moves.append(Point(prev_move, i))
+    return available_moves # if available_moves, then the game ends in a draw
+
+  def make_move(self, point):
+    self.board[point.board_num][point.pos] = self.player
+    # premove update?
+    return point.pos
 
   def init(self):
     """On init, we reset everything? 
@@ -29,8 +99,7 @@ class Agent:
     self.result, self.cause = None, None
     print('Agent initalised')
     return None
-    
-
+  
   def reset_board(self):
     self.board = [['.' for _ in range(10)] for _ in range(10)]
 
@@ -64,6 +133,7 @@ class Agent:
     self.move[0], self.move[1] = board_num, prev_move
     self.board[board_num][prev_move] = 'o' if self.player == 'x' else 'x'
     self.m = 2
+    # replace the rest with some algorithm
     this_move = random.randint(1, 9)
     while self.board[prev_move][this_move] != '.':
       this_move = random.randint(1, 9)
@@ -79,6 +149,7 @@ class Agent:
     self.board[board_num][first_move] = 'x' if self.player == 'x' else 'o'
     self.board[first_move][prev_move] = 'o' if self.player == 'x' else 'x'
     self.m = 3
+    # replace the rest with some algorithm
     this_move = random.randint(1, 9)
     while self.board[prev_move][this_move] != '.':
       this_move = random.randint(1, 9)
@@ -93,6 +164,7 @@ class Agent:
     self.move[self.m] = prev_move
     self.board[self.move[self.m-1]][self.move[self.m]] = 'o' if self.player == 'x' else 'x'
     self.m+=1
+    # replace the rest with some algorithm
     this_move = random.randint(1, 9)
     while self.board[prev_move][this_move] != '.':
       this_move = random.randint(1, 9)
