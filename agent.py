@@ -17,12 +17,16 @@ class Agent:
     self.board = [['.' for _ in range(10)] for _ in range(10)]
     self.player, self.m = None, None
     self.move = [-1]*MAX_MOVE
+    self.result, self.cause = None, None
 
   def init(self):
     """On init, we reset everything? 
     not sure if we need to set random seed like agent.c
     """
     random.seed(datetime.datetime.now().second)
+    self.player, self.m = None, None
+    self.move = [-1]*MAX_MOVE
+    self.result, self.cause = None, None
     print('Agent initalised')
     return None
     
@@ -103,17 +107,21 @@ class Agent:
     self.board[self.move[self.m-1]][self.move[self.m]] = 'o' if self.player == 'x' else 'x'
     print('Agent ran last move and the board now looks like:')
 
-  def win(self):
-    pass
+  def win(self, cause):
+    self.result = 'WIN'
+    self.cause = cause
 
-  def loss(self):
-    pass
+  def loss(self, cause):
+    self.result = 'LOSS'
+    self.cause = cause
 
-  def draw(self):
-    pass
+  def draw(self, cause):
+    self.result = 'DRAW'
+    self.cause = cause
 
   def end(self):
-    pass
+    print('Agent closing.')
+    sys.exit()
 
   def process_data(self, data):
     if re.match('init', data):
@@ -136,11 +144,14 @@ class Agent:
       last_move = int(re.search('last_move\((\d+)\)', data).group(1))
       return self.last_move(last_move)
     elif re.match('win\(.*\)', data):
-      self.win()
+      cause = re.search('win\((.+)\)', data)
+      self.win(cause)
     elif re.match('loss\(.*\)', data):
-      self.loss()
+      cause = re.search('win\((.+)\)', data)
+      self.loss(cause)
     elif re.match('draw\(.*\)', data):
-      self.draw()
+      cause = re.search('win\((.+)\)', data)
+      self.draw(cause)
     elif re.match('end', data):
       self.end()
 
