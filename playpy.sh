@@ -10,5 +10,5 @@ if [ "$#" -ne 2 ]; then
 fi
 
 ./servt -p $2          & sleep 0.1
-python agent.py -p $2 & sleep 0.1
+python3 agent.py -p $2 & sleep 0.1
 ./$1     -p $2

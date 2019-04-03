@@ -65,18 +65,43 @@ class Agent:
       this_move = random.randint(1, 9)
     self.move[self.m] = this_move
     self.board[prev_move][this_move] = self.player
-    self.print_board()
+    print('Agent ran second move and the board now looks like:')
+    # self.print_board()
     return this_move
 
 
   def third_move(self, board_num, first_move, prev_move):
-    pass
+    self.move[0], self.move[1], self.move[2] = board_num, first_move, prev_move
+    self.board[board_num][first_move] = 'x' if self.player == 'x' else 'o'
+    self.board[first_move][prev_move] = 'o' if self.player == 'x' else 'x'
+    self.m = 3
+    this_move = random.randint(1, 9)
+    while self.board[prev_move][this_move] != '.':
+      this_move = random.randint(1, 9)
+    self.move[self.m] = this_move
+    self.board[self.move[self.m-1]][this_move] = self.player
+    print('Agent ran third move and the board now looks like:')
+    # self.print_board()
+    return this_move
 
   def next_move(self, prev_move):
-    pass
+    self.m+=1
+    self.move[self.m] = prev_move
+    self.board[self.move[self.m-1]][self.move[self.m]] = 'o' if self.player == 'x' else 'x'
+    self.m+=1
+    this_move = random.randint(1, 9)
+    while self.board[prev_move][this_move] != '.':
+      this_move = random.randint(1, 9)
+    self.move[self.m] = this_move
+    self.board[self.move[self.m-1]][this_move] = self.player
+    print('Agent ran next move and the board now looks like:')
+    return this_move
 
   def last_move(self, prev_move):
-    pass
+    self.m+=1
+    self.move[self.m] = prev_move
+    self.board[self.move[self.m-1]][self.move[self.m]] = 'o' if self.player == 'x' else 'x'
+    print('Agent ran last move and the board now looks like:')
 
   def win(self):
     pass
@@ -108,7 +133,7 @@ class Agent:
       prev_move = int(re.search('next_move\((\d+)\)', data).group(1))
       return self.next_move(prev_move)
     elif re.match('last_move\(\d+\)', data):
-      last_move = int(re.search('last_move\((\d+)\)').group(1))
+      last_move = int(re.search('last_move\((\d+)\)', data).group(1))
       return self.last_move(last_move)
     elif re.match('win\(.*\)', data):
       self.win()
@@ -136,7 +161,7 @@ if __name__ == '__main__':
   client.connect(("localhost", port))
 
   while True:
-    data = client.recv(1024).decode('utf-8').rstrip()
+    data = client.recv(1024).decode().rstrip()
     if not data:
       break
     commands = data.split('\n')
@@ -146,7 +171,7 @@ if __name__ == '__main__':
       time.sleep(0.1)
       if response:
         print('Sending to server:', response)
-        client.sendall(str(response).encode('utf-8'))
+        client.send('{}\n'.format(str(response)).encode())
       else:
         print('The previous command required no response')
 
