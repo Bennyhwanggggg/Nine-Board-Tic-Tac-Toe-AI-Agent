@@ -97,11 +97,12 @@ class Agent:
 
   def alpha_beta(self, depth, player, alpha, beta, prev_move):
     available_moves = self.get_available_moves(prev_move)
-    opponent = 'o' if player == 'x' else 'x'
+    opponent = 'o' if self.player == 'x' else 'x'
     # print(depth, [i.pos for i in available_moves])
     # self.print_board()
-    if self.someone_won(player):
-      print('someone won?')
+    # terminate early if we already found a winning move
+    if self.someone_won(self.player):
+      # print('someone won?')
       return float('inf')
     else:
       if self.someone_won(opponent):
@@ -149,7 +150,7 @@ class Agent:
 
   def someone_won_single(self, board_num, player):
     mini_board = self.board[board_num]
-    print(mini_board)
+    # print(mini_board)
     return True if ((mini_board[0] == mini_board[1] == mini_board[2]) and mini_board[0] == player) or \
                    ((mini_board[3] == mini_board[4] == mini_board[5]) and mini_board[3] == player) or \
                    ((mini_board[6] == mini_board[7] == mini_board[8]) and mini_board[6] == player) or \
