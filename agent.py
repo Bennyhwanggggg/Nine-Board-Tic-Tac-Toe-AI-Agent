@@ -70,9 +70,9 @@ class Agent:
     elif player_win == 3:
       return 100
     elif player_win == 0 and player_lose == 2:
-      return -10
+      return -1
     elif player_win == 2 and player_lose == 0:
-      return 10
+      return 1
     elif player_win == 1 and player_lose == 0:
       return 1
     elif player_win == 0 and player_lose == 1:
@@ -88,18 +88,22 @@ class Agent:
     return available_moves # if available_moves, then the game ends in a draw
 
   def make_move(self, point , player):
-    print('Before making move for board_num:{} and pos:{}:'.format(point.board_num, point.pos))
-    self.print_board()
+    # print('Before making move for board_num:{} and pos:{}:'.format(point.board_num, point.pos))
+    # self.print_board()
     self.board[point.board_num][point.pos] = player
-    print('After making move for board_num:{} and pos:{}:'.format(point.board_num, point.pos))
-    self.print_board()
+    # print('After making move for board_num:{} and pos:{}:'.format(point.board_num, point.pos))
+    # self.print_board()
     return point.pos  # return the new pre_move
 
-  def make_best_move(self):
-    print('Agent deciding best move from:')
+  def print_scores(self):
     for score in self.scores:
       print('Board number: {}, move: {}, score: {}'.format(score[2].board_num, score[2].pos, -score[0]))
     print()
+
+
+  def make_best_move(self):
+    print('Agent deciding best move from:')
+    self.print_scores()
     point = heapq.heappop(self.scores)[2]
     return point.pos
 
@@ -131,14 +135,19 @@ class Agent:
         new_score = self.alpha_beta(depth+1, opponent, alpha, beta, prev_move)
         # Update list of scores when we have recursed back to the top
         if not depth:
+          # print('out of recursion')
           heapq.heappush(self.scores, (-new_score, str(uuid4()), point))
+          # self.print_scores()
 
-        bound = max(bound, new_score)
+        # bound = max(bound, new_score)
+        alpha = max(alpha, new_score)
         # Reset board
         self.board[point.board_num][point.pos] = '.'
-        if bound >= beta:
+        # if bound >= beta:
+        if alpha >= beta:
           return alpha
-      return bound
+      # return bound
+      return alpha
     else:
       bound = beta
       for point in available_moves:
@@ -147,13 +156,18 @@ class Agent:
         new_score = self.alpha_beta(depth+1, self.player, alpha, beta, prev_move)
 
         if not depth:
+          # print('out of recursion')
           heapq.heappush(self.scores, (-new_score, str(uuid4()), point))
-        bound = min(bound, new_score)
+          # self.print_scores()
+        # bound = min(bound, new_score)
+        beta = min(beta, new_score)
         # Reset board
         self.board[point.board_num][point.pos] = '.'
-        if bound <= alpha:
+        # if bound <= alpha:
+        if beta <= alpha:
           return beta
-      return bound
+      # return bound
+      return beta
 
   def someone_won(self, player):
     # print([self.someone_won_single(i, player) for i in range(len(self.board))])
