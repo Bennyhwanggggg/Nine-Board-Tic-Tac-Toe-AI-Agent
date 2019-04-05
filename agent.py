@@ -91,12 +91,16 @@ class Agent:
     return point.pos  # return the new pre_move
 
   def make_best_move(self):
+    print(self.scores)
     self.scores = sorted(self.scores, key=lambda x:x[1])
     return self.scores.pop()[0].pos
 
   def alpha_beta(self, depth, player, alpha, beta, prev_move):
     available_moves = self.get_available_moves(prev_move)
+    print(depth, [i.pos for i in available_moves])
+    self.print_board()
     if self.someone_won(self.player):
+      print('someone won?')
       return float('inf')
     else:
       opponent = 'o' if self.player == 'x' else 'x'
@@ -111,13 +115,12 @@ class Agent:
       for i in range(len(self.board)):
         total_score += self.calculate_heuristic_score(self.board[i])
       return total_score if player == self.player else -total_score
-
+    
     if player == self.player:
       for point in available_moves:
         prev_move = self.make_move(point)
         # Recursive call to update alpha
         new_score = self.alpha_beta(depth+1, player, alpha, beta, prev_move)
-        
         # Update list of scores when we have recursed back to the top
         if not depth:
           self.scores.append((point, new_score))
@@ -133,9 +136,6 @@ class Agent:
         prev_move = self.make_move(point)
         # Recursive call to update alpha
         new_score = self.alpha_beta(depth+1, player, alpha, beta, prev_move)
-        # Update list of scores when we have recursed back to the top
-        if not depth:
-          self.scores.append((point, new_score))
         beta = min(beta, new_score)
         # Reset board
         self.board[point.board_num][point.pos] = '.'
@@ -144,10 +144,12 @@ class Agent:
       return beta
 
   def someone_won(self, player):
-    return True if any([self.someone_won_single(i, player) for i in range(len(self.board))]) else False
+    # print([self.someone_won_single(i, player) for i in range(len(self.board))])
+    return any([self.someone_won_single(i, player) for i in range(len(self.board))])
 
   def someone_won_single(self, board_num, player):
     mini_board = self.board[board_num]
+    print(mini_board)
     return True if ((mini_board[0] == mini_board[1] == mini_board[2]) and mini_board[0] == player) or \
                    ((mini_board[3] == mini_board[4] == mini_board[5]) and mini_board[3] == player) or \
                    ((mini_board[6] == mini_board[7] == mini_board[8]) and mini_board[6] == player) or \
@@ -201,7 +203,8 @@ class Agent:
 
   def second_move(self, board_num, prev_move):
     self.move[0], self.move[1] = board_num, prev_move
-    self.board[board_num][prev_move] = 'o' if self.player == 'x' else 'x'
+    opponent = 'o' if self.player == 'x' else 'x'
+    self.board[board_num][prev_move] = opponent
     self.m = 2
 
     self.scores = []
@@ -210,15 +213,16 @@ class Agent:
 
     self.move[self.m] = this_move
     self.board[prev_move][this_move] = self.player
-    print('Agent ran second move and the board now looks like:')
+    print('Agent ran second move with the best move being: {}\nThe board now looks like:'.format(this_move))
     self.print_board()
     return this_move
 
 
   def third_move(self, board_num, first_move, prev_move):
     self.move[0], self.move[1], self.move[2] = board_num, first_move, prev_move
-    self.board[board_num][first_move] = 'x' if self.player == 'x' else 'o'
-    self.board[first_move][prev_move] = 'o' if self.player == 'x' else 'x'
+    opponent = 'o' if self.player == 'x' else 'x'
+    self.board[board_num][first_move] = self.player
+    self.board[first_move][prev_move] = opponent
     self.m = 3
 
     self.scores = []
@@ -227,14 +231,15 @@ class Agent:
 
     self.move[self.m] = this_move
     self.board[self.move[self.m-1]][this_move] = self.player
-    print('Agent ran third move and the board now looks like:')
+    print('Agent ran third move with the best move being: {}\nThe board now looks like:'.format(this_move))
     self.print_board()
     return this_move
 
   def next_move(self, prev_move):
     self.m+=1
     self.move[self.m] = prev_move
-    self.board[self.move[self.m-1]][self.move[self.m]] = 'o' if self.player == 'x' else 'x'
+    opponent = 'o' if self.player == 'x' else 'x'
+    self.board[self.move[self.m-1]][self.move[self.m]] = opponent
     self.m+=1
 
     self.scores = []
@@ -243,7 +248,7 @@ class Agent:
 
     self.move[self.m] = this_move
     self.board[self.move[self.m-1]][this_move] = self.player
-    print('Agent ran next move and the board now looks like:')
+    print('Agent ran next move with the best move being: {}\nThe board now looks like:'.format(this_move))
     self.print_board()
     return this_move
 
@@ -326,12 +331,11 @@ if __name__ == '__main__':
     for command in commands:
       print('Recieved from server:', command)
       response = agent.process_data(command)
-      time.sleep(0.1)
       if response:
         print('Sending to server:', response)
         client.send('{}\n'.format(str(response)).encode())
       else:
-        print('The previous command required no response')
+        print('The previous command: {} -- required no response'.format(command))
 
 
     

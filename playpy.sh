@@ -2,7 +2,7 @@
 
 # Play agent.py against specified program
 # Example:
-# ./playpl.sh lookt 54321
+# ./playpy.sh lookt 54321
 
 if [ "$#" -ne 2 ]; then
   echo "Usage: $0 <player> <port>" >&2
