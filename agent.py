@@ -35,18 +35,18 @@ class Agent:
     """
     score = 0
     # row score
-    score += self.calculate_score(mini_board[0], mini_board[1], mini_board[2])
-    score += self.calculate_score(mini_board[3], mini_board[4], mini_board[5])
-    score += self.calculate_score(mini_board[6], mini_board[7], mini_board[8])
+    score += self.calculate_score(mini_board[1], mini_board[2], mini_board[3])
+    score += self.calculate_score(mini_board[4], mini_board[5], mini_board[6])
+    score += self.calculate_score(mini_board[7], mini_board[8], mini_board[9])
 
     # column score
-    score += self.calculate_score(mini_board[0], mini_board[3], mini_board[6])
     score += self.calculate_score(mini_board[1], mini_board[4], mini_board[7])
     score += self.calculate_score(mini_board[2], mini_board[5], mini_board[8])
+    score += self.calculate_score(mini_board[3], mini_board[6], mini_board[9])
 
     # diagonal score
-    score += self.calculate_score(mini_board[0], mini_board[4], mini_board[8])
-    score += self.calculate_score(mini_board[2], mini_board[4], mini_board[6])
+    score += self.calculate_score(mini_board[1], mini_board[5], mini_board[9])
+    score += self.calculate_score(mini_board[3], mini_board[5], mini_board[7])
     return score
 
   def calculate_score(self, a, b, c):
@@ -70,9 +70,9 @@ class Agent:
     elif player_win == 3:
       return 100
     elif player_win == 0 and player_lose == 2:
-      return -20
+      return -10
     elif player_win == 2 and player_lose == 0:
-      return 20
+      return 10
     elif player_win == 1 and player_lose == 0:
       return 1
     elif player_win == 0 and player_lose == 1:
@@ -82,24 +82,30 @@ class Agent:
   def get_available_moves(self, prev_move):
     mini_board = self.board[prev_move]
     available_moves = []
-    for i in range(len(mini_board)):
+    for i in range(1, len(mini_board)):
       if mini_board[i] == '.':
         available_moves.append(Point(prev_move, i))
     return available_moves # if available_moves, then the game ends in a draw
 
-  def make_move(self, point):
-    self.board[point.board_num][point.pos] = self.player
+  def make_move(self, point , player):
+    print('Before making move for board_num:{} and pos:{}:'.format(point.board_num, point.pos))
+    self.print_board()
+    self.board[point.board_num][point.pos] = player
+    print('After making move for board_num:{} and pos:{}:'.format(point.board_num, point.pos))
+    self.print_board()
     return point.pos  # return the new pre_move
 
   def make_best_move(self):
+    print('Agent deciding best move from:')
+    for score in self.scores:
+      print('Board number: {}, move: {}, score: {}'.format(score[2].board_num, score[2].pos, -score[0]))
+    print()
     point = heapq.heappop(self.scores)[2]
     return point.pos
 
   def alpha_beta(self, depth, player, alpha, beta, prev_move):
     available_moves = self.get_available_moves(prev_move)
-    opponent = 'o' if self.player == 'x' else 'x'
-    # print(depth, [i.pos for i in available_moves])
-    # self.print_board()
+    opponent = 'o' if player == 'x' else 'x'
     # terminate early if we already found a winning move
     if self.someone_won(self.player):
       # print('someone won?')
@@ -118,31 +124,36 @@ class Agent:
       return total_score if player == self.player else -total_score
 
     if player == self.player:
+      bound = alpha
       for point in available_moves:
-        prev_move = self.make_move(point)
+        prev_move = self.make_move(point, player)
         # Recursive call to update alpha
         new_score = self.alpha_beta(depth+1, opponent, alpha, beta, prev_move)
         # Update list of scores when we have recursed back to the top
         if not depth:
           heapq.heappush(self.scores, (-new_score, str(uuid4()), point))
 
-        alpha = max(alpha, new_score)
+        bound = max(bound, new_score)
         # Reset board
         self.board[point.board_num][point.pos] = '.'
-        if alpha >= beta:
+        if bound >= beta:
           return alpha
-      return alpha
+      return bound
     else:
+      bound = beta
       for point in available_moves:
-        prev_move = self.make_move(point)
+        prev_move = self.make_move(point, player)
         # Recursive call to update alpha
         new_score = self.alpha_beta(depth+1, self.player, alpha, beta, prev_move)
-        beta = min(beta, new_score)
+
+        if not depth:
+          heapq.heappush(self.scores, (-new_score, str(uuid4()), point))
+        bound = min(bound, new_score)
         # Reset board
         self.board[point.board_num][point.pos] = '.'
-        if beta <= alpha:
+        if bound <= alpha:
           return beta
-      return beta
+      return bound
 
   def someone_won(self, player):
     # print([self.someone_won_single(i, player) for i in range(len(self.board))])
@@ -151,14 +162,14 @@ class Agent:
   def someone_won_single(self, board_num, player):
     mini_board = self.board[board_num]
     # print(mini_board)
-    return True if ((mini_board[0] == mini_board[1] == mini_board[2]) and mini_board[0] == player) or \
-                   ((mini_board[3] == mini_board[4] == mini_board[5]) and mini_board[3] == player) or \
-                   ((mini_board[6] == mini_board[7] == mini_board[8]) and mini_board[6] == player) or \
-                   ((mini_board[0] == mini_board[3] == mini_board[6]) and mini_board[0] == player) or \
+    return True if ((mini_board[1] == mini_board[2] == mini_board[3]) and mini_board[1] == player) or \
+                   ((mini_board[4] == mini_board[5] == mini_board[6]) and mini_board[4] == player) or \
+                   ((mini_board[7] == mini_board[8] == mini_board[9]) and mini_board[7] == player) or \
                    ((mini_board[1] == mini_board[4] == mini_board[7]) and mini_board[1] == player) or \
                    ((mini_board[2] == mini_board[5] == mini_board[8]) and mini_board[2] == player) or \
-                   ((mini_board[0] == mini_board[4] == mini_board[8]) and mini_board[0] == player) or \
-                   ((mini_board[2] == mini_board[4] == mini_board[6]) and mini_board[2] == player) else False
+                   ((mini_board[3] == mini_board[6] == mini_board[9]) and mini_board[3] == player) or \
+                   ((mini_board[1] == mini_board[5] == mini_board[9]) and mini_board[1] == player) or \
+                   ((mini_board[3] == mini_board[5] == mini_board[7]) and mini_board[3] == player) else False
 
 
 
@@ -207,6 +218,11 @@ class Agent:
     opponent = 'o' if self.player == 'x' else 'x'
     self.board[board_num][prev_move] = opponent
     self.m = 2
+    print('Agent starting second move, board looks like:')
+    self.print_board()
+
+    legal_moves = self.get_available_moves(prev_move)
+    print('legal moves are:', [move.pos for move in legal_moves])
 
     self.scores = []
     self.alpha_beta(0, self.player, -float('inf'), float('inf'), prev_move)
@@ -225,6 +241,11 @@ class Agent:
     self.board[board_num][first_move] = self.player
     self.board[first_move][prev_move] = opponent
     self.m = 3
+    print('Agent starting third move, board looks like:')
+    self.print_board()
+
+    legal_moves = self.get_available_moves(prev_move)
+    print('legal moves are:', [move.pos for move in legal_moves])
 
     self.scores = []
     self.alpha_beta(0, self.player, -float('inf'), float('inf'), prev_move)
@@ -242,6 +263,11 @@ class Agent:
     opponent = 'o' if self.player == 'x' else 'x'
     self.board[self.move[self.m-1]][self.move[self.m]] = opponent
     self.m+=1
+    print('Agent starting next move, board looks like:')
+    self.print_board()
+
+    legal_moves = self.get_available_moves(prev_move)
+    print('legal moves are:', [move.pos for move in legal_moves])
 
     self.scores = []
     self.alpha_beta(0, self.player, -float('inf'), float('inf'), prev_move)
@@ -332,7 +358,7 @@ if __name__ == '__main__':
     for command in commands:
       print('Recieved from server:', command)
       response = agent.process_data(command)
-      if response:
+      if response is not None:
         print('Sending to server:', response)
         client.send('{}\n'.format(str(response)).encode())
       else:
