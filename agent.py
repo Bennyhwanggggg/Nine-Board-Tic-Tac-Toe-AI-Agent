@@ -8,10 +8,16 @@ import time
 import random
 import datetime
 import heapq
+import logging
 from uuid import uuid4
 
 MAX_MOVE = 81
 MAX_DEPTH = 7
+
+LOG_FORMAT = "%(levelname)s:\n%(message)s"
+logging.basicConfig(format=LOG_FORMAT)
+logger = logging.getLogger(__name__)
+logger.setLevel(level=logging.ERROR)
 
 class Point:
   def __init__(self, board_num, pos):
@@ -70,9 +76,9 @@ class Agent:
     elif player_win == 3:
       return 100
     elif player_win == 0 and player_lose == 2:
-      return -1
+      return -20
     elif player_win == 2 and player_lose == 0:
-      return 1
+      return 20
     elif player_win == 1 and player_lose == 0:
       return 1
     elif player_win == 0 and player_lose == 1:
@@ -88,21 +94,20 @@ class Agent:
     return available_moves # if available_moves, then the game ends in a draw
 
   def make_move(self, point , player):
-    # print('Before making move for board_num:{} and pos:{}:'.format(point.board_num, point.pos))
-    # self.print_board()
+    logger.debug('Before making move for board_num:{} and pos:{}:'.format(point.board_num, point.pos))
+    logger.debug(self.print_board())
     self.board[point.board_num][point.pos] = player
-    # print('After making move for board_num:{} and pos:{}:'.format(point.board_num, point.pos))
-    # self.print_board()
+    logger.debug('After making move for board_num:{} and pos:{}:'.format(point.board_num, point.pos))
+    logger.debug(self.print_board())
     return point.pos  # return the new pre_move
 
   def print_scores(self):
     for score in self.scores:
-      print('Board number: {}, move: {}, score: {}'.format(score[2].board_num, score[2].pos, -score[0]))
-    print()
+      logger.debug('Board number: {}, move: {}, score: {}'.format(score[2].board_num, score[2].pos, -score[0]))
 
 
   def make_best_move(self):
-    print('Agent deciding best move from:')
+    logger.debug('Agent deciding best move from:')
     self.print_scores()
     point = heapq.heappop(self.scores)[2]
     return point.pos
@@ -135,9 +140,7 @@ class Agent:
         new_score = self.alpha_beta(depth+1, opponent, alpha, beta, prev_move)
         # Update list of scores when we have recursed back to the top
         if not depth:
-          # print('out of recursion')
           heapq.heappush(self.scores, (-new_score, str(uuid4()), point))
-          # self.print_scores()
 
         # bound = max(bound, new_score)
         alpha = max(alpha, new_score)
@@ -156,9 +159,8 @@ class Agent:
         new_score = self.alpha_beta(depth+1, self.player, alpha, beta, prev_move)
 
         if not depth:
-          # print('out of recursion')
           heapq.heappush(self.scores, (-new_score, str(uuid4()), point))
-          # self.print_scores()
+
         # bound = min(bound, new_score)
         beta = min(beta, new_score)
         # Reset board
@@ -195,36 +197,40 @@ class Agent:
     self.player, self.m = None, None
     self.move = [-1]*MAX_MOVE
     self.result, self.cause = None, None
-    print('Agent initalised')
+    logger.info('Agent initalised')
     return None
   
   def reset_board(self):
     self.board = [['.' for _ in range(10)] for _ in range(10)]
 
   def print_board_row(self, a, b, c, i, j, k):
-    print(' {} {} {} '.format(self.board[a][i], self.board[a][j], self.board[a][k]), end='|')
-    print(' {} {} {} '.format(self.board[b][i], self.board[b][j], self.board[b][k]), end='|')
-    print(' {} {} {} '.format(self.board[c][i], self.board[c][j], self.board[c][k]), end='|\n')
+    result = ''
+    result += ' {} {} {} |'.format(self.board[a][i], self.board[a][j], self.board[a][k])
+    result += ' {} {} {} |'.format(self.board[b][i], self.board[b][j], self.board[b][k])
+    result += ' {} {} {} |\n'.format(self.board[c][i], self.board[c][j], self.board[c][k])
+    return result
 
   def print_board(self):
-    self.print_board_row(1, 2, 3, 1, 2, 3)
-    self.print_board_row(1, 2, 3, 4, 5, 6)
-    self.print_board_row(1, 2, 3, 7, 8, 9)
-    print(' ------+-------+-------')
-    self.print_board_row(4, 5, 6, 1, 2, 3)
-    self.print_board_row(4, 5, 6, 4, 5, 6)
-    self.print_board_row(4, 5, 6, 7, 8, 9)
-    print(' ------+-------+-------')
-    self.print_board_row(7, 8, 9, 1, 2, 3)
-    self.print_board_row(7, 8, 9, 4, 5, 6)
-    self.print_board_row(7, 8, 9, 7, 8, 9)
+    result = ''
+    result += self.print_board_row(1, 2, 3, 1, 2, 3)
+    result += self.print_board_row(1, 2, 3, 4, 5, 6)
+    result += self.print_board_row(1, 2, 3, 7, 8, 9)
+    result += ' ------+-------+-------\n'
+    result += self.print_board_row(4, 5, 6, 1, 2, 3)
+    result += self.print_board_row(4, 5, 6, 4, 5, 6)
+    result += self.print_board_row(4, 5, 6, 7, 8, 9)
+    result += ' ------+-------+-------\n'
+    result += self.print_board_row(7, 8, 9, 1, 2, 3)
+    result += self.print_board_row(7, 8, 9, 4, 5, 6)
+    result += self.print_board_row(7, 8, 9, 7, 8, 9)
+    return result
 
   def start(self, player):
     self.reset_board()
     self.m = 0
     self.move[self.m] = 0
     self.player = player
-    print('Agent is starting. Player is:', self.player)
+    logger.info('Agent is starting. Player is:', self.player)
     return None
 
   def second_move(self, board_num, prev_move):
@@ -232,11 +238,11 @@ class Agent:
     opponent = 'o' if self.player == 'x' else 'x'
     self.board[board_num][prev_move] = opponent
     self.m = 2
-    print('Agent starting second move, board looks like:')
-    self.print_board()
+    logger.info('Agent starting second move, board looks like:')
+    logger.info(self.print_board())
 
     legal_moves = self.get_available_moves(prev_move)
-    print('legal moves are:', [move.pos for move in legal_moves])
+    logger.debug('legal moves are:', [move.pos for move in legal_moves])
 
     self.scores = []
     self.alpha_beta(0, self.player, -float('inf'), float('inf'), prev_move)
@@ -244,8 +250,8 @@ class Agent:
 
     self.move[self.m] = this_move
     self.board[prev_move][this_move] = self.player
-    print('Agent ran second move with the best move being: {}\nThe board now looks like:'.format(this_move))
-    self.print_board()
+    logger.info('Agent ran second move with the best move being: {}\nThe board now looks like:'.format(this_move))
+    logger.info(self.print_board())
     return this_move
 
 
@@ -255,11 +261,11 @@ class Agent:
     self.board[board_num][first_move] = self.player
     self.board[first_move][prev_move] = opponent
     self.m = 3
-    print('Agent starting third move, board looks like:')
-    self.print_board()
+    logger.info('Agent starting third move, board looks like:')
+    logger.info(self.print_board())
 
     legal_moves = self.get_available_moves(prev_move)
-    print('legal moves are:', [move.pos for move in legal_moves])
+    logger.debug('legal moves are:', [move.pos for move in legal_moves])
 
     self.scores = []
     self.alpha_beta(0, self.player, -float('inf'), float('inf'), prev_move)
@@ -267,8 +273,8 @@ class Agent:
 
     self.move[self.m] = this_move
     self.board[self.move[self.m-1]][this_move] = self.player
-    print('Agent ran third move with the best move being: {}\nThe board now looks like:'.format(this_move))
-    self.print_board()
+    logger.info('Agent ran third move with the best move being: {}\nThe board now looks like:'.format(this_move))
+    logger.info(self.print_board())
     return this_move
 
   def next_move(self, prev_move):
@@ -277,11 +283,11 @@ class Agent:
     opponent = 'o' if self.player == 'x' else 'x'
     self.board[self.move[self.m-1]][self.move[self.m]] = opponent
     self.m+=1
-    print('Agent starting next move, board looks like:')
-    self.print_board()
+    logger.info('Agent starting next move, board looks like:')
+    logger.info(self.print_board())
 
     legal_moves = self.get_available_moves(prev_move)
-    print('legal moves are:', [move.pos for move in legal_moves])
+    logger.debug('legal moves are:', [move.pos for move in legal_moves])
 
     self.scores = []
     self.alpha_beta(0, self.player, -float('inf'), float('inf'), prev_move)
@@ -289,16 +295,16 @@ class Agent:
 
     self.move[self.m] = this_move
     self.board[self.move[self.m-1]][this_move] = self.player
-    print('Agent ran next move with the best move being: {}\nThe board now looks like:'.format(this_move))
-    self.print_board()
+    logger.info('Agent ran next move with the best move being: {}\nThe board now looks like:'.format(this_move))
+    logger.info(self.print_board())
     return this_move
 
   def last_move(self, prev_move):
     self.m+=1
     self.move[self.m] = prev_move
     self.board[self.move[self.m-1]][self.move[self.m]] = 'o' if self.player == 'x' else 'x'
-    print('Agent ran last move and the board now looks like:')
-    self.print_board()
+    logger.info('Agent ran last move and the board now looks like:')
+    logger.info(self.print_board())
 
   def win(self, cause):
     self.result = 'WIN'
