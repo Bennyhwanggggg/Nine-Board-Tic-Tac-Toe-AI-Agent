@@ -17,7 +17,7 @@ MAX_DEPTH = 7
 LOG_FORMAT = "%(levelname)s:\n%(message)s"
 logging.basicConfig(format=LOG_FORMAT)
 logger = logging.getLogger(__name__)
-logger.setLevel(level=logging.ERROR)
+logger.setLevel(level=logging.ERROR)  # Change the level to logging.DEBUG or logging.INFO for more messages on console
 
 class Point:
   def __init__(self, board_num, pos):
@@ -353,8 +353,7 @@ class Agent:
       self.draw(cause)
     elif re.match('end', data):
       self.end()
-
-
+      
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
