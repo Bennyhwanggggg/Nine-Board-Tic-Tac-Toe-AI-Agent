@@ -10,6 +10,7 @@ import datetime
 import logging
 
 MAX_MOVE = 81
+MAX_DEPTH = 7
 
 class Point:
   def __init__(self, board_num, pos):
@@ -25,6 +26,7 @@ class Agent:
     self.move = [-1]*MAX_MOVE
     self.result, self.cause = None, None
     self.scores = []
+    self.max_depth = MAX_DEPTH
 
   def calculate_heuristic_score(self, mini_board):
     """Calculate the heuristic function's value
@@ -86,8 +88,51 @@ class Agent:
 
   def make_move(self, point):
     self.board[point.board_num][point.pos] = self.player
-    # premove update?
-    return point.pos
+    return point.pos  # return the new pre_move
+
+  def alpha_beta(self, depth, player, alpha, beta, prev_move):
+    available_moves = self.get_available_moves(pre_move)
+    if not available_moves:
+      return 0
+    # Call heursitic to evaluate the score straight away when max depth reached.
+    if depth == self.MAX_DEPTH:
+      # Calculate the total score of the whole board
+      total_score = 0
+      for i in range(len(self.board)):
+        total_score += self.calculate_heuristic_score(self.board[i])
+      return total_score if player == self.player else -total_score
+
+    if player == self.player:
+      for point in available_moves:
+        pre_move = self.make_move(point)
+        # Recursive call to update alpha
+        new_score = self.alpha_beta(depth+1, player, alpha, beta, pre_move)
+        
+        # Update list of scores when we have recursed back to the top
+        if not depth:
+          self.scores.append((point, new_score))
+
+        alpha = max(alpha, new_score)
+        # Reset board
+        self.board[point.board_num][point.pos] = '.'
+        if alpha >= beta:
+          return alpha
+      return alpha
+    else:
+      for point in available_moves:
+        pre_move = self.make_move(point)
+        # Recursive call to update alpha
+        new_score = self.alpha_beta(depth+1, player, alpha, beta, pre_move)
+        # Update list of scores when we have recursed back to the top
+        if not depth:
+          self.scores.append((point, new_score))
+        beta = min(beta, new_score)
+        # Reset board
+        self.board[point.board_num][point.pos] = '.'
+        if beta <= alpha:
+          return beta
+      return beta
+
 
   def init(self):
     """On init, we reset everything? 
