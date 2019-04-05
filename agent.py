@@ -91,19 +91,19 @@ class Agent:
     return point.pos  # return the new pre_move
 
   def make_best_move(self):
-    print(self.scores)
+    # print(self.scores)
     self.scores = sorted(self.scores, key=lambda x:x[1])
     return self.scores.pop()[0].pos
 
   def alpha_beta(self, depth, player, alpha, beta, prev_move):
     available_moves = self.get_available_moves(prev_move)
-    print(depth, [i.pos for i in available_moves])
-    self.print_board()
-    if self.someone_won(self.player):
+    opponent = 'o' if player == 'x' else 'x'
+    # print(depth, [i.pos for i in available_moves])
+    # self.print_board()
+    if self.someone_won(player):
       print('someone won?')
       return float('inf')
     else:
-      opponent = 'o' if self.player == 'x' else 'x'
       if self.someone_won(opponent):
         return -float('inf')
     if not available_moves:
@@ -115,12 +115,12 @@ class Agent:
       for i in range(len(self.board)):
         total_score += self.calculate_heuristic_score(self.board[i])
       return total_score if player == self.player else -total_score
-    
+
     if player == self.player:
       for point in available_moves:
         prev_move = self.make_move(point)
         # Recursive call to update alpha
-        new_score = self.alpha_beta(depth+1, player, alpha, beta, prev_move)
+        new_score = self.alpha_beta(depth+1, opponent, alpha, beta, prev_move)
         # Update list of scores when we have recursed back to the top
         if not depth:
           self.scores.append((point, new_score))
@@ -135,7 +135,7 @@ class Agent:
       for point in available_moves:
         prev_move = self.make_move(point)
         # Recursive call to update alpha
-        new_score = self.alpha_beta(depth+1, player, alpha, beta, prev_move)
+        new_score = self.alpha_beta(depth+1, self.player, alpha, beta, prev_move)
         beta = min(beta, new_score)
         # Reset board
         self.board[point.board_num][point.pos] = '.'
