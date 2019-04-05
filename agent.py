@@ -7,7 +7,8 @@ import re
 import time
 import random
 import datetime
-import logging
+import heapq
+from uuid import uuid4
 
 MAX_MOVE = 81
 MAX_DEPTH = 7
@@ -69,9 +70,9 @@ class Agent:
     elif player_win == 3:
       return 100
     elif player_win == 0 and player_lose == 2:
-      return -1
+      return -20
     elif player_win == 2 and player_lose == 0:
-      return 1
+      return 20
     elif player_win == 1 and player_lose == 0:
       return 1
     elif player_win == 0 and player_lose == 1:
@@ -91,9 +92,8 @@ class Agent:
     return point.pos  # return the new pre_move
 
   def make_best_move(self):
-    # print(self.scores)
-    self.scores = sorted(self.scores, key=lambda x:x[1])
-    return self.scores.pop()[0].pos
+    point = heapq.heappop(self.scores)[2]
+    return point.pos
 
   def alpha_beta(self, depth, player, alpha, beta, prev_move):
     available_moves = self.get_available_moves(prev_move)
@@ -124,7 +124,7 @@ class Agent:
         new_score = self.alpha_beta(depth+1, opponent, alpha, beta, prev_move)
         # Update list of scores when we have recursed back to the top
         if not depth:
-          self.scores.append((point, new_score))
+          heapq.heappush(self.scores, (-new_score, str(uuid4()), point))
 
         alpha = max(alpha, new_score)
         # Reset board
