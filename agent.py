@@ -34,18 +34,18 @@ class Agent:
     """
     score = 0
     # row score
-    score += calculate_score(mini_board[0], mini_board[1], mini_board[2])
-    score += calculate_score(mini_board[3], mini_board[4], mini_board[5])
-    score += calculate_score(mini_board[6], mini_board[7], mini_board[8])
+    score += self.calculate_score(mini_board[0], mini_board[1], mini_board[2])
+    score += self.calculate_score(mini_board[3], mini_board[4], mini_board[5])
+    score += self.calculate_score(mini_board[6], mini_board[7], mini_board[8])
 
     # column score
-    score += calculate_score(mini_board[0], mini_board[3], mini_board[6])
-    score += calculate_score(mini_board[1], mini_board[4], mini_board[7])
-    score += calculate_score(mini_board[2], mini_board[5], mini_board[8])
+    score += self.calculate_score(mini_board[0], mini_board[3], mini_board[6])
+    score += self.calculate_score(mini_board[1], mini_board[4], mini_board[7])
+    score += self.calculate_score(mini_board[2], mini_board[5], mini_board[8])
 
     # diagonal score
-    score += calculate_score(mini_board[0], mini_board[4], mini_board[8])
-    score += calculate_score(mini_board[2], mini_board[4], mini_board[6])
+    score += self.calculate_score(mini_board[0], mini_board[4], mini_board[8])
+    score += self.calculate_score(mini_board[2], mini_board[4], mini_board[6])
     return score
 
   def calculate_score(self, a, b, c):
@@ -90,12 +90,22 @@ class Agent:
     self.board[point.board_num][point.pos] = self.player
     return point.pos  # return the new pre_move
 
+  def make_best_move(self):
+    self.scores = sorted(self.scores, key=lambda x:x[1])
+    return self.scores.pop()[0].pos
+
   def alpha_beta(self, depth, player, alpha, beta, prev_move):
-    available_moves = self.get_available_moves(pre_move)
+    available_moves = self.get_available_moves(prev_move)
+    if self.someone_won(self.player):
+      return float('inf')
+    else:
+      opponent = 'o' if self.player == 'x' else 'x'
+      if self.someone_won(opponent):
+        return -float('inf')
     if not available_moves:
       return 0
     # Call heursitic to evaluate the score straight away when max depth reached.
-    if depth == self.MAX_DEPTH:
+    if depth == self.max_depth:
       # Calculate the total score of the whole board
       total_score = 0
       for i in range(len(self.board)):
@@ -104,9 +114,9 @@ class Agent:
 
     if player == self.player:
       for point in available_moves:
-        pre_move = self.make_move(point)
+        prev_move = self.make_move(point)
         # Recursive call to update alpha
-        new_score = self.alpha_beta(depth+1, player, alpha, beta, pre_move)
+        new_score = self.alpha_beta(depth+1, player, alpha, beta, prev_move)
         
         # Update list of scores when we have recursed back to the top
         if not depth:
@@ -120,9 +130,9 @@ class Agent:
       return alpha
     else:
       for point in available_moves:
-        pre_move = self.make_move(point)
+        prev_move = self.make_move(point)
         # Recursive call to update alpha
-        new_score = self.alpha_beta(depth+1, player, alpha, beta, pre_move)
+        new_score = self.alpha_beta(depth+1, player, alpha, beta, prev_move)
         # Update list of scores when we have recursed back to the top
         if not depth:
           self.scores.append((point, new_score))
@@ -132,6 +142,21 @@ class Agent:
         if beta <= alpha:
           return beta
       return beta
+
+  def someone_won(self, player):
+    return True if any([self.someone_won_single(i, player) for i in range(len(self.board))]) else False
+
+  def someone_won_single(self, board_num, player):
+    mini_board = self.board[board_num]
+    return True if ((mini_board[0] == mini_board[1] == mini_board[2]) and mini_board[0] == player) or \
+                   ((mini_board[3] == mini_board[4] == mini_board[5]) and mini_board[3] == player) or \
+                   ((mini_board[6] == mini_board[7] == mini_board[8]) and mini_board[6] == player) or \
+                   ((mini_board[0] == mini_board[3] == mini_board[6]) and mini_board[0] == player) or \
+                   ((mini_board[1] == mini_board[4] == mini_board[7]) and mini_board[1] == player) or \
+                   ((mini_board[2] == mini_board[5] == mini_board[8]) and mini_board[2] == player) or \
+                   ((mini_board[0] == mini_board[4] == mini_board[8]) and mini_board[0] == player) or \
+                   ((mini_board[2] == mini_board[4] == mini_board[6]) and mini_board[2] == player) else False
+
 
 
   def init(self):
@@ -178,10 +203,11 @@ class Agent:
     self.move[0], self.move[1] = board_num, prev_move
     self.board[board_num][prev_move] = 'o' if self.player == 'x' else 'x'
     self.m = 2
-    # replace the rest with some algorithm
-    this_move = random.randint(1, 9)
-    while self.board[prev_move][this_move] != '.':
-      this_move = random.randint(1, 9)
+
+    self.scores = []
+    self.alpha_beta(0, self.player, -float('inf'), float('inf'), prev_move)
+    this_move = self.make_best_move()
+
     self.move[self.m] = this_move
     self.board[prev_move][this_move] = self.player
     print('Agent ran second move and the board now looks like:')
@@ -194,10 +220,11 @@ class Agent:
     self.board[board_num][first_move] = 'x' if self.player == 'x' else 'o'
     self.board[first_move][prev_move] = 'o' if self.player == 'x' else 'x'
     self.m = 3
-    # replace the rest with some algorithm
-    this_move = random.randint(1, 9)
-    while self.board[prev_move][this_move] != '.':
-      this_move = random.randint(1, 9)
+
+    self.scores = []
+    self.alpha_beta(0, self.player, -float('inf'), float('inf'), prev_move)
+    this_move = self.make_best_move()
+
     self.move[self.m] = this_move
     self.board[self.move[self.m-1]][this_move] = self.player
     print('Agent ran third move and the board now looks like:')
@@ -209,10 +236,11 @@ class Agent:
     self.move[self.m] = prev_move
     self.board[self.move[self.m-1]][self.move[self.m]] = 'o' if self.player == 'x' else 'x'
     self.m+=1
-    # replace the rest with some algorithm
-    this_move = random.randint(1, 9)
-    while self.board[prev_move][this_move] != '.':
-      this_move = random.randint(1, 9)
+
+    self.scores = []
+    self.alpha_beta(0, self.player, -float('inf'), float('inf'), prev_move)
+    this_move = self.make_best_move()
+
     self.move[self.m] = this_move
     self.board[self.move[self.m-1]][this_move] = self.player
     print('Agent ran next move and the board now looks like:')
