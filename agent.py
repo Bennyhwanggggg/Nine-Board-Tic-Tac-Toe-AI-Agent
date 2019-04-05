@@ -17,7 +17,8 @@ MAX_DEPTH = 7
 LOG_FORMAT = "%(levelname)s:\n%(message)s"
 logging.basicConfig(format=LOG_FORMAT)
 logger = logging.getLogger(__name__)
-logger.setLevel(level=logging.ERROR)  # Change the level to logging.DEBUG or logging.INFO for more messages on console
+# Change the level to logging.DEBUG or logging.INFO for more messages on console. logging.ERROR or logging.WARNING to hide
+logger.setLevel(level=logging.INFO)
 
 class Point:
   def __init__(self, board_num, pos):
@@ -57,15 +58,16 @@ class Agent:
 
   def calculate_score(self, a, b, c):
     player_win, player_lose = 0, 0
-    if a == self.player:
+    player = self.player
+    if a == player:
       player_win += 1
     elif a != '.':
       player_lose += 1
-    if b == self.player:
+    if b == player:
       player_win += 1
     elif b != '.':
       player_lose += 1
-    if c == self.player:
+    if c == player:
       player_win += 1
     elif c != '.':
       player_lose += 1
@@ -76,9 +78,13 @@ class Agent:
     elif player_win == 3:
       return 100
     elif player_win == 0 and player_lose == 2:
-      return -20
+      return -10
+    # elif player_win == 1 and player_lose == 2:
+    #   return -40
     elif player_win == 2 and player_lose == 0:
-      return 20
+      return 10
+    # elif player_win == 2 and player_lose == 1:
+    #   return 40
     elif player_win == 1 and player_lose == 0:
       return 1
     elif player_win == 0 and player_lose == 1:
@@ -230,7 +236,7 @@ class Agent:
     self.m = 0
     self.move[self.m] = 0
     self.player = player
-    logger.info('Agent is starting. Player is:', self.player)
+    logger.info('Agent is starting. Player is: {}'.format(self.player))
     return None
 
   def second_move(self, board_num, prev_move):
@@ -242,7 +248,7 @@ class Agent:
     logger.info(self.print_board())
 
     legal_moves = self.get_available_moves(prev_move)
-    logger.debug('legal moves are:', [move.pos for move in legal_moves])
+    logger.debug('legal moves are: {}'.format([move.pos for move in legal_moves]))
 
     self.scores = []
     self.alpha_beta(0, self.player, -float('inf'), float('inf'), prev_move)
@@ -265,7 +271,7 @@ class Agent:
     logger.info(self.print_board())
 
     legal_moves = self.get_available_moves(prev_move)
-    logger.debug('legal moves are:', [move.pos for move in legal_moves])
+    logger.debug('legal moves are: {}'.format([move.pos for move in legal_moves]))
 
     self.scores = []
     self.alpha_beta(0, self.player, -float('inf'), float('inf'), prev_move)
@@ -287,7 +293,7 @@ class Agent:
     logger.info(self.print_board())
 
     legal_moves = self.get_available_moves(prev_move)
-    logger.debug('legal moves are:', [move.pos for move in legal_moves])
+    logger.debug('legal moves are: {}'.format([move.pos for move in legal_moves]))
 
     self.scores = []
     self.alpha_beta(0, self.player, -float('inf'), float('inf'), prev_move)
@@ -309,17 +315,20 @@ class Agent:
   def win(self, cause):
     self.result = 'WIN'
     self.cause = cause
+    logging.info(self.result)
 
   def loss(self, cause):
     self.result = 'LOSS'
     self.cause = cause
+    logging.info(self.result)
 
   def draw(self, cause):
     self.result = 'DRAW'
     self.cause = cause
+    logging.info(self.result)
 
   def end(self):
-    print('Agent closing.')
+    logger.info('Agent closing.')
     sys.exit()
 
   def process_data(self, data):
@@ -353,7 +362,7 @@ class Agent:
       self.draw(cause)
     elif re.match('end', data):
       self.end()
-      
+
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
