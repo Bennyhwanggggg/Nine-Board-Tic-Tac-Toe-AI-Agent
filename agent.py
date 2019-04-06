@@ -45,15 +45,16 @@ class Agent:
     score += self.calculate_score(mini_board[1], mini_board[2], mini_board[3])
     score += self.calculate_score(mini_board[4], mini_board[5], mini_board[6])
     score += self.calculate_score(mini_board[7], mini_board[8], mini_board[9])
-
+    logger.debug('row score is: {}'.format(score))
     # column score
     score += self.calculate_score(mini_board[1], mini_board[4], mini_board[7])
     score += self.calculate_score(mini_board[2], mini_board[5], mini_board[8])
     score += self.calculate_score(mini_board[3], mini_board[6], mini_board[9])
-
+    logger.debug('column score is: {}'.format(score))
     # diagonal score
     score += self.calculate_score(mini_board[1], mini_board[5], mini_board[9])
     score += self.calculate_score(mini_board[3], mini_board[5], mini_board[7])
+    logger.debug('diagonal score is: {}'.format(score))
     return score
 
   def calculate_score(self, a, b, c):
@@ -79,16 +80,12 @@ class Agent:
       return 100
     elif player_win == 0 and player_lose == 2:
       return -10
-    # elif player_win == 1 and player_lose == 2:
-    #   return -40
     elif player_win == 2 and player_lose == 0:
       return 10
-    # elif player_win == 2 and player_lose == 1:
-    #   return 40
-    elif player_win == 1 and player_lose == 0:
-      return 1
     elif player_win == 0 and player_lose == 1:
-      return -1
+      return -5
+    elif player_win == 1 and player_lose == 0:
+      return 5
     return 0  # No one has an advantage in other cases so return a neutral value
 
   def get_available_moves(self, prev_move):
@@ -109,7 +106,7 @@ class Agent:
 
   def print_scores(self):
     for score in self.scores:
-      logger.debug('Board number: {}, move: {}, score: {}'.format(score[2].board_num, score[2].pos, -score[0]))
+      logger.info('Board number: {}, move: {}, score: {}'.format(score[2].board_num, score[2].pos, -score[0]))
 
 
   def make_best_move(self):
