@@ -75,9 +75,9 @@ class Agent:
 
     # Check who has the advantage and return a relative score
     if player_lose == 3:
-      return -100
+      return -float('inf')
     elif player_win == 3:
-      return 100
+      return float('inf')
     elif player_win == 0 and player_lose == 2:
       return -30
     elif player_win == 2 and player_lose == 0:
