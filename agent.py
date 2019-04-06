@@ -12,7 +12,7 @@ import logging
 from uuid import uuid4
 
 MAX_MOVE = 81
-MAX_DEPTH = 7
+MAX_DEPTH = 6
 
 LOG_FORMAT = "%(levelname)s:\n%(message)s"
 logging.basicConfig(format=LOG_FORMAT)
@@ -79,12 +79,14 @@ class Agent:
     elif player_win == 3:
       return 100
     elif player_win == 0 and player_lose == 2:
-      return -10
+      return -30
     elif player_win == 2 and player_lose == 0:
-      return 10
+      return 30
     elif player_win == 0 and player_lose == 1:
-      return -5
+      return -1
     elif player_win == 1 and player_lose == 0:
+      return 1
+    elif player_win == 1 and player_lose == 1:
       return 5
     return 0  # No one has an advantage in other cases so return a neutral value
 
@@ -117,10 +119,9 @@ class Agent:
 
   def alpha_beta(self, depth, player, alpha, beta, prev_move):
     available_moves = self.get_available_moves(prev_move)
-    opponent = 'o' if player == 'x' else 'x'
+    opponent = 'o' if self.player == 'x' else 'x'
     # terminate early if we already found a winning move
     if self.someone_won(self.player):
-      # print('someone won?')
       return float('inf')
     else:
       if self.someone_won(opponent):
