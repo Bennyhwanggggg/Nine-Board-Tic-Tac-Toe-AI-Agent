@@ -18,7 +18,7 @@ LOG_FORMAT = "%(levelname)s:\n%(message)s"
 logging.basicConfig(format=LOG_FORMAT)
 logger = logging.getLogger(__name__)
 # Change the level to logging.DEBUG or logging.INFO for more messages on console. logging.ERROR or logging.WARNING to hide
-logger.setLevel(level=logging.INFO)
+logger.setLevel(level=logging.ERROR)
 
 class Point:
   def __init__(self, board_num, pos):
@@ -86,8 +86,8 @@ class Agent:
       return -1
     elif player_win == 1 and player_lose == 0:
       return 1
-    elif player_win == 1 and player_lose == 1:
-      return 5
+    # elif player_win == 1 and player_lose == 1:
+    #   return 5
     return 0  # No one has an advantage in other cases so return a neutral value
 
   def get_available_moves(self, prev_move):
@@ -134,7 +134,7 @@ class Agent:
       total_score = 0
       for i in range(1, len(self.board)):
         total_score += self.calculate_heuristic_score(self.board[i])
-      return total_score
+      return total_score # if player == self.player else -total_score
 
     if player == self.player:
       bound = alpha
@@ -313,17 +313,17 @@ class Agent:
   def win(self, cause):
     self.result = 'WIN'
     self.cause = cause
-    logging.info(self.result)
+    print('>'*20, self.result)
 
   def loss(self, cause):
     self.result = 'LOSS'
     self.cause = cause
-    logging.info(self.result)
+    print('>'*20, self.result)
 
   def draw(self, cause):
     self.result = 'DRAW'
     self.cause = cause
-    logging.info(self.result)
+    print('>'*20, self.result)
 
   def end(self):
     logger.info('Agent closing.')
