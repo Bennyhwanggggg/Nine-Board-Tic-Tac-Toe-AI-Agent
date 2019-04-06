@@ -75,9 +75,9 @@ class Agent:
 
     # Check who has the advantage and return a relative score
     if player_lose == 3:
-      return -float('inf')
+      return -100
     elif player_win == 3:
-      return float('inf')
+      return 100
     elif player_win == 0 and player_lose == 2:
       return -30
     elif player_win == 2 and player_lose == 0:
@@ -134,7 +134,7 @@ class Agent:
       total_score = 0
       for i in range(1, len(self.board)):
         total_score += self.calculate_heuristic_score(self.board[i])
-      return total_score if player == self.player else -total_score
+      return total_score
 
     if player == self.player:
       bound = alpha
