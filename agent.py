@@ -10,6 +10,7 @@ import datetime
 import heapq
 import logging
 from uuid import uuid4
+from collections import deque
 
 MAX_MOVE = 81
 MAX_DEPTH = 6
@@ -18,7 +19,7 @@ LOG_FORMAT = "%(levelname)s:\n%(message)s"
 logging.basicConfig(format=LOG_FORMAT)
 logger = logging.getLogger(__name__)
 # Change the level to logging.DEBUG or logging.INFO for more messages on console. logging.ERROR or logging.WARNING to hide
-logger.setLevel(level=logging.ERROR)
+logger.setLevel(level=logging.INFO)
 
 class Point:
   def __init__(self, board_num, pos):
@@ -30,6 +31,7 @@ class Agent:
     # Initiate a tic tac toe board where each list represent a board. There are
     # 9 boards in total
     self.board = [['.' for _ in range(10)] for _ in range(10)]
+    self.weights = [0, 11, 1, 10, 2, 50, 3, 12, 4, 13]  # weight matrix to chose center then diagonal when score are the same
     self.player, self.m = None, None
     self.move = [-1]*MAX_MOVE
     self.result, self.cause = None, None
@@ -42,24 +44,40 @@ class Agent:
     """
     score = 0
     # row score
-    score += self.calculate_score(mini_board[1], mini_board[2], mini_board[3])
-    score += self.calculate_score(mini_board[4], mini_board[5], mini_board[6])
-    score += self.calculate_score(mini_board[7], mini_board[8], mini_board[9])
+    # print(self.print_board())
+    score += self.calculate_score(mini_board[1], 1, mini_board[2], 2, mini_board[3], 3)
+    score += self.calculate_score(mini_board[4], 4, mini_board[5], 5, mini_board[6], 6)
+    score += self.calculate_score(mini_board[7], 7, mini_board[8], 8, mini_board[9], 9)
     logger.debug('row score is: {}'.format(score))
+    # print('row score is: {}'.format(score))
     # column score
-    score += self.calculate_score(mini_board[1], mini_board[4], mini_board[7])
-    score += self.calculate_score(mini_board[2], mini_board[5], mini_board[8])
-    score += self.calculate_score(mini_board[3], mini_board[6], mini_board[9])
+    score += self.calculate_score(mini_board[1], 1, mini_board[4], 4, mini_board[7], 7)
+    score += self.calculate_score(mini_board[2], 2, mini_board[5], 5, mini_board[8], 8)
+    score += self.calculate_score(mini_board[3], 3, mini_board[6], 6, mini_board[9], 9)
     logger.debug('column score is: {}'.format(score))
+    # print('column score is: {}'.format(score))
     # diagonal score
-    score += self.calculate_score(mini_board[1], mini_board[5], mini_board[9])
-    score += self.calculate_score(mini_board[3], mini_board[5], mini_board[7])
+    score += self.calculate_score(mini_board[1], 1, mini_board[5], 5, mini_board[9], 9)
+    score += self.calculate_score(mini_board[3], 3, mini_board[5], 5, mini_board[7], 7)
     logger.debug('diagonal score is: {}'.format(score))
+    # print('diagonal score is: {}'.format(score))
+    # print(score)
     return score
 
-  def calculate_score(self, a, b, c):
+  def calculate_score(self, a, a_i, b, b_i, c, c_i):
+    corners = set([1, 3, 7, 9])
+    center = set([5])
+    reward = 0
+    if b != '.' and b_i in center:
+      reward += 30
+    if a != '.' and a_i in corners:
+      reward += 5
+    if c != '.' and c_i in corners:
+      reward += 5
+
     player_win, player_lose = 0, 0
     player = self.player
+    opponent = 'x' if self.player == 'o' else 'x'
     if a == player:
       player_win += 1
     elif a != '.':
@@ -75,19 +93,17 @@ class Agent:
 
     # Check who has the advantage and return a relative score
     if player_lose == 3:
-      return -100
+      return float('inf')
     elif player_win == 3:
-      return 100
+      return -float('inf')
     elif player_win == 0 and player_lose == 2:
-      return -30
+      return -10 - reward
     elif player_win == 2 and player_lose == 0:
-      return 30
+      return 10 + reward
     elif player_win == 0 and player_lose == 1:
-      return -1
+      return -1 - reward
     elif player_win == 1 and player_lose == 0:
-      return 1
-    # elif player_win == 1 and player_lose == 1:
-    #   return 5
+      return 1 + reward
     return 0  # No one has an advantage in other cases so return a neutral value
 
   def get_available_moves(self, prev_move):
@@ -123,18 +139,22 @@ class Agent:
     # terminate early if we already found a winning move
     if self.someone_won(self.player):
       return float('inf')
+      # return 100
     else:
       if self.someone_won(opponent):
         return -float('inf')
+        # return -100
     if not available_moves:
       return 0
     # Call heursitic to evaluate the score straight away when max depth reached.
     if depth == self.max_depth:
       # Calculate the total score of the whole board
+      # print(self.print_board())
       total_score = 0
       for i in range(1, len(self.board)):
         total_score += self.calculate_heuristic_score(self.board[i])
-      return total_score # if player == self.player else -total_score
+      # print('total score is: ', total_score)
+      return total_score  # if player == self.player else -total_score
 
     if player == self.player:
       bound = alpha
@@ -145,13 +165,20 @@ class Agent:
         # Update list of scores when we have recursed back to the top
         if not depth:
           heapq.heappush(self.scores, (-new_score, str(uuid4()), point))
+          # logger.info('pushed into heap')
+          # self.print_scores()
 
         # bound = max(bound, new_score)
+        # # print(bound, alpha, beta)
+        # alpha = max(alpha, bound)
         alpha = max(alpha, new_score)
+        # print(bound, alpha, beta)
+
         # Reset board
         self.board[point.board_num][point.pos] = '.'
         # if bound >= beta:
         if alpha >= beta:
+          # print('pruning:', depth, player, alpha, beta, new_score, bound)
           return alpha
       # return bound
       return alpha
@@ -161,16 +188,18 @@ class Agent:
         prev_move = self.make_move(point, player)
         # Recursive call to update alpha
         new_score = self.alpha_beta(depth+1, self.player, alpha, beta, prev_move)
-
         if not depth:
           heapq.heappush(self.scores, (-new_score, str(uuid4()), point))
-
         # bound = min(bound, new_score)
+        # # print(bound, alpha, beta)
+        # beta = min(beta, bound)
         beta = min(beta, new_score)
+        # print(bound,alpha, beta)
         # Reset board
         self.board[point.board_num][point.pos] = '.'
         # if bound <= alpha:
         if beta <= alpha:
+          # print('pruning:', depth, player, alpha, beta, new_score, bound)
           return beta
       # return bound
       return beta
