@@ -31,12 +31,16 @@ class Agent:
     # Initiate a tic tac toe board where each list represent a board. There are
     # 9 boards in total
     self.board = [['.' for _ in range(10)] for _ in range(10)]
+    self.global_board = self.initiate_global_board()
     self.weights = [0, 11, 1, 10, 2, 50, 3, 12, 4, 13]  # weight matrix to chose center then diagonal when score are the same
     self.player, self.m = None, None
     self.move = [-1]*MAX_MOVE
     self.result, self.cause = None, None
     self.scores = []
     self.max_depth = MAX_DEPTH
+
+  def initiate_global_board(self):
+    return ['.' for _ in range(89)]
 
   def calculate_heuristic_score(self, mini_board):
     """Calculate the heuristic function's value
@@ -105,6 +109,41 @@ class Agent:
     elif player_win == 1 and player_lose == 0:
       return 1 + reward
     return 0  # No one has an advantage in other cases so return a neutral value
+
+  def alphabeta(self, depth, player, alpha, beta, pre_move, score_so_far):
+    opponent = 'x' if self.player == 'o' else 'o'
+    next_player = 'x' if player == 'o' else 'x'
+    if self.someone_won(self.player) or self.player(opponent) or depth == self.max_depth:
+      return score_so_far
+    available_moves = self.get_available_moves(prev_move)
+    if not available_moves:
+      return 0
+    for point in available_moves:
+      pre_move = self.make_move(point, player)
+      rets = self.calculate_heuristic_score(prev_move)
+      val = self.alphabeta(depth+1, next_player, alpha, beta, pre_move, score_so_far+rets)
+      self.board[point.board_num][point.pos] = '.'
+      if player == self.player:
+        if val < beta:
+          beta = val
+      else:
+        if val > alpha:
+          alpha = val
+      if beta <= alpha:
+        break
+    score = beta if player == self.player else alpha
+    return score
+
+  def make_next_move(self, prev_move):
+    my_moves = []
+    best_val = -float('inf')
+    available_moves = self.get_available_moves(prev_move)
+    for point in available_moves:
+      pre_move = self.make_move(point, player)
+      rets = self.calculate_heuristic_score(prev_move)
+
+
+
 
   def get_available_moves(self, prev_move):
     mini_board = self.board[prev_move]

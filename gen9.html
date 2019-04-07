@@ -172,10 +172,13 @@ function utility(board, last_slot, slot, depth) {
 
 	for (var idx in WINNING_TRIADS_BY_SLOT[slot]) {
 		var triad = WINNING_TRIADS_BY_SLOT[slot][idx];
-
+		console.log(triad)
+		console.log(board)
+		console.log(triad[0] + offset, triad[1] + offset, triad[2] + offset)
+		console.log(board[triad[0] + offset], board[triad[1] + offset], board[triad[2] + offset])
 		triad_sum = board[triad[0] + offset]
 			+ board[triad[1] + offset] + board[triad[2] + offset];
-
+		console.log('case', triad_sum)
 		switch (triad_sum) {
 		case  3:
 		case -3:
