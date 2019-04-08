@@ -304,8 +304,8 @@ class Agent:
     logger.info('Agent starting second move, board looks like:')
     logger.info(self.print_board())
 
-    # this_move = self.make_best_move(prev_move)
-    this_move = self.make_move_mct(prev_move)
+    this_move = self.make_best_move(prev_move)
+    # this_move = self.make_move_mct(prev_move)
 
     self.move[self.m] = this_move
     self.board[prev_move][this_move] = self.player
@@ -323,8 +323,8 @@ class Agent:
     logger.info('Agent starting third move, board looks like:')
     logger.info(self.print_board())
 
-    # this_move = self.make_best_move(prev_move)
-    this_move = self.make_move_mct(prev_move)
+    this_move = self.make_best_move(prev_move)
+    # this_move = self.make_move_mct(prev_move)
 
     self.move[self.m] = this_move
     self.board[self.move[self.m-1]][this_move] = self.player
@@ -341,8 +341,8 @@ class Agent:
     logger.info('Agent starting next move, board looks like:')
     logger.info(self.print_board())
 
-    # this_move = self.make_best_move(prev_move)
-    this_move = self.make_move_mct(prev_move)
+    this_move = self.make_best_move(prev_move)
+    # this_move = self.make_move_mct(prev_move)
 
     self.move[self.m] = this_move
     self.board[self.move[self.m-1]][this_move] = self.player
@@ -429,13 +429,14 @@ if __name__ == '__main__':
       break
     commands = data.split('\n')
     for command in commands:
-      print('Recieved from server:', command)
+      # print('Recieved from server:', command)
       response = agent.process_data(command)
       if response is not None:
-        print('Sending to server:', response)
+        # print('Sending to server:', response)
         client.send('{}\n'.format(str(response)).encode())
       else:
-        print('The previous command: {} -- required no response'.format(command))
+        # print('The previous command: {} -- required no response'.format(command))
+        continue
 
 
     
