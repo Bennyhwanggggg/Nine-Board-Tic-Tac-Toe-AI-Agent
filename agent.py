@@ -111,21 +111,30 @@ class Agent:
       logger.info('Board number: {}, move: {}, score: {}'.format(score[2].board_num, score[2].pos, -score[0]))
 
 
-  def make_best_move(self):
-    logger.debug('Agent deciding best move from:')
-    self.print_scores()
-    point = heapq.heappop(self.scores)[2]
-    return point.pos
+  def make_best_move(self, prev_move):
+    available_moves = self.get_available_moves(prev_move)
+    best_moves, best_move_score = [], -float('inf')
+    opponent = 'o' if self.player == 'x' else 'x'
+    for point in available_moves:
+      prev_move = self.make_move(point, self.player)
+      move_score = self.alpha_beta(1, opponent, -float('inf'), float('inf'), prev_move)
+      self.board[point.board_num][point.pos] = '.'
+      if move_score > best_move_score:
+        best_moves, best_move_score = [point.pos], move_score
+      elif move_score == best_move_score:
+        best_moves.append(point.pos)
+      # print(best_moves)
+    return random.choice(best_moves)
 
   def alpha_beta(self, depth, player, alpha, beta, prev_move):
     available_moves = self.get_available_moves(prev_move)
     opponent = 'o' if self.player == 'x' else 'x'
     # terminate early if we already found a winning move
     if self.someone_won(self.player):
-      return float('inf')
+      return 10000000
     else:
       if self.someone_won(opponent):
-        return -float('inf')
+        return -10000000
     if not available_moves:
       return 0
     # Call heursitic to evaluate the score straight away when max depth reached.
@@ -134,7 +143,7 @@ class Agent:
       total_score = 0
       for i in range(1, len(self.board)):
         total_score += self.calculate_heuristic_score(self.board[i])
-      return total_score # if player == self.player else -total_score
+      return total_score
 
     if player == self.player:
       bound = alpha
@@ -143,17 +152,11 @@ class Agent:
         # Recursive call to update alpha
         new_score = self.alpha_beta(depth+1, opponent, alpha, beta, prev_move)
         # Update list of scores when we have recursed back to the top
-        if not depth:
-          heapq.heappush(self.scores, (-new_score, str(uuid4()), point))
-
-        # bound = max(bound, new_score)
         alpha = max(alpha, new_score)
         # Reset board
         self.board[point.board_num][point.pos] = '.'
-        # if bound >= beta:
         if alpha >= beta:
           return alpha
-      # return bound
       return alpha
     else:
       bound = beta
@@ -164,15 +167,11 @@ class Agent:
 
         if not depth:
           heapq.heappush(self.scores, (-new_score, str(uuid4()), point))
-
-        # bound = min(bound, new_score)
         beta = min(beta, new_score)
         # Reset board
         self.board[point.board_num][point.pos] = '.'
-        # if bound <= alpha:
         if beta <= alpha:
           return beta
-      # return bound
       return beta
 
   def someone_won(self, player):
@@ -248,9 +247,9 @@ class Agent:
     legal_moves = self.get_available_moves(prev_move)
     logger.debug('legal moves are: {}'.format([move.pos for move in legal_moves]))
 
-    self.scores = []
-    self.alpha_beta(0, self.player, -float('inf'), float('inf'), prev_move)
-    this_move = self.make_best_move()
+    # self.scores = []
+    # self.alpha_beta(0, self.player, -float('inf'), float('inf'), prev_move)
+    this_move = self.make_best_move(prev_move)
 
     self.move[self.m] = this_move
     self.board[prev_move][this_move] = self.player
@@ -271,9 +270,9 @@ class Agent:
     legal_moves = self.get_available_moves(prev_move)
     logger.debug('legal moves are: {}'.format([move.pos for move in legal_moves]))
 
-    self.scores = []
-    self.alpha_beta(0, self.player, -float('inf'), float('inf'), prev_move)
-    this_move = self.make_best_move()
+    # self.scores = []
+    # self.alpha_beta(0, self.player, -float('inf'), float('inf'), prev_move)
+    this_move = self.make_best_move(prev_move)
 
     self.move[self.m] = this_move
     self.board[self.move[self.m-1]][this_move] = self.player
@@ -293,9 +292,9 @@ class Agent:
     legal_moves = self.get_available_moves(prev_move)
     logger.debug('legal moves are: {}'.format([move.pos for move in legal_moves]))
 
-    self.scores = []
-    self.alpha_beta(0, self.player, -float('inf'), float('inf'), prev_move)
-    this_move = self.make_best_move()
+    # self.scores = []
+    # self.alpha_beta(0, self.player, -float('inf'), float('inf'), prev_move)
+    this_move = self.make_best_move(prev_move)
 
     self.move[self.m] = this_move
     self.board[self.move[self.m-1]][this_move] = self.player
