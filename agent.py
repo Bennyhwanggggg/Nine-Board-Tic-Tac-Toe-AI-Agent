@@ -139,11 +139,7 @@ class Agent:
       return 0
     # Call heursitic to evaluate the score straight away when max depth reached.
     if depth == self.max_depth:
-      # Calculate the total score of the whole board
-      total_score = 0
-      for i in range(1, len(self.board)):
-        total_score += self.calculate_heuristic_score(self.board[i])
-      return total_score
+      return sum([self.calculate_heuristic_score(self.board[i]) for i in range(1, len(self.board))])
 
     if player == self.player:
       bound = alpha
