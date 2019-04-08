@@ -9,6 +9,7 @@ import random
 import datetime
 import heapq
 import logging
+import copy
 from uuid import uuid4
 
 MAX_MOVE = 81
@@ -35,6 +36,8 @@ class Agent:
     self.result, self.cause = None, None
     self.scores = []
     self.max_depth = MAX_DEPTH
+    self.center = set([5])
+    self.corners = set([1, 3, 7, 9])
 
   def calculate_heuristic_score(self, mini_board):
     """Calculate the heuristic function's value
@@ -42,23 +45,21 @@ class Agent:
     """
     score = 0
     # row score
-    score += self.calculate_score(mini_board[1], mini_board[2], mini_board[3])
-    score += self.calculate_score(mini_board[4], mini_board[5], mini_board[6])
-    score += self.calculate_score(mini_board[7], mini_board[8], mini_board[9])
-    logger.debug('row score is: {}'.format(score))
+    score += self.calculate_score(1, 2, 3, mini_board)
+    score += self.calculate_score(4, 5, 6, mini_board)
+    score += self.calculate_score(7, 8, 9, mini_board)
     # column score
-    score += self.calculate_score(mini_board[1], mini_board[4], mini_board[7])
-    score += self.calculate_score(mini_board[2], mini_board[5], mini_board[8])
-    score += self.calculate_score(mini_board[3], mini_board[6], mini_board[9])
-    logger.debug('column score is: {}'.format(score))
+    score += self.calculate_score(1, 4, 7, mini_board)
+    score += self.calculate_score(2, 5, 8, mini_board)
+    score += self.calculate_score(3, 6, 9, mini_board)
     # diagonal score
-    score += self.calculate_score(mini_board[1], mini_board[5], mini_board[9])
-    score += self.calculate_score(mini_board[3], mini_board[5], mini_board[7])
-    logger.debug('diagonal score is: {}'.format(score))
+    score += self.calculate_score(1, 5, 9, mini_board)
+    score += self.calculate_score(3, 5, 7, mini_board)
     return score
 
-  def calculate_score(self, a, b, c):
-    player_win, player_lose = 0, 0
+  def calculate_score(self, idx1, idx2, idx3, mini_board):
+    a, b, c = mini_board[idx1], mini_board[idx2], mini_board[idx3]
+    player_win, player_lose, bonus = 0, 0, 1
     player = self.player
     if a == player:
       player_win += 1
@@ -73,21 +74,26 @@ class Agent:
     elif c != '.':
       player_lose += 1
 
+    if b != '.' and b in self.center:
+      bonus *= 5
+    if a != '.' and a in self.corners:
+      bonus *= 2
+    if c != '.' and c in self.corners:
+      bonus *= 2
+
     # Check who has the advantage and return a relative score
     if player_lose == 3:
-      return -100
+      return -1000*bonus
     elif player_win == 3:
-      return 100
+      return 1000*bonus
     elif player_win == 0 and player_lose == 2:
-      return -30
+      return -30*bonus
     elif player_win == 2 and player_lose == 0:
-      return 30
+      return 30*bonus
     elif player_win == 0 and player_lose == 1:
-      return -1
+      return -1*bonus
     elif player_win == 1 and player_lose == 0:
-      return 1
-    # elif player_win == 1 and player_lose == 1:
-    #   return 5
+      return 1*bonus
     return 0  # No one has an advantage in other cases so return a neutral value
 
   def get_available_moves(self, prev_move):
@@ -99,17 +105,8 @@ class Agent:
     return available_moves # if available_moves, then the game ends in a draw
 
   def make_move(self, point , player):
-    logger.debug('Before making move for board_num:{} and pos:{}:'.format(point.board_num, point.pos))
-    logger.debug(self.print_board())
     self.board[point.board_num][point.pos] = player
-    logger.debug('After making move for board_num:{} and pos:{}:'.format(point.board_num, point.pos))
-    logger.debug(self.print_board())
     return point.pos  # return the new pre_move
-
-  def print_scores(self):
-    for score in self.scores:
-      logger.info('Board number: {}, move: {}, score: {}'.format(score[2].board_num, score[2].pos, -score[0]))
-
 
   def make_best_move(self, prev_move):
     available_moves = self.get_available_moves(prev_move)
@@ -123,18 +120,18 @@ class Agent:
         best_moves, best_move_score = [point.pos], move_score
       elif move_score == best_move_score:
         best_moves.append(point.pos)
-      # print(best_moves)
     return random.choice(best_moves)
 
   def alpha_beta(self, depth, player, alpha, beta, prev_move):
     available_moves = self.get_available_moves(prev_move)
     opponent = 'o' if self.player == 'x' else 'x'
-    # terminate early if we already found a winning move
+    # terminate early if we already found a winning move. Give winning move with 
+    # a short depth more score
     if self.someone_won(self.player):
-      return 10000000
+      return 100000*(self.max_depth+1 - depth)
     else:
       if self.someone_won(opponent):
-        return -10000000
+        return -100000*(self.max_depth+1 - depth)
     if not available_moves:
       return 0
     # Call heursitic to evaluate the score straight away when max depth reached.
@@ -142,12 +139,9 @@ class Agent:
       return sum([self.calculate_heuristic_score(self.board[i]) for i in range(1, len(self.board))])
 
     if player == self.player:
-      bound = alpha
       for point in available_moves:
         prev_move = self.make_move(point, player)
-        # Recursive call to update alpha
         new_score = self.alpha_beta(depth+1, opponent, alpha, beta, prev_move)
-        # Update list of scores when we have recursed back to the top
         alpha = max(alpha, new_score)
         # Reset board
         self.board[point.board_num][point.pos] = '.'
@@ -155,14 +149,9 @@ class Agent:
           return alpha
       return alpha
     else:
-      bound = beta
       for point in available_moves:
         prev_move = self.make_move(point, player)
-        # Recursive call to update alpha
         new_score = self.alpha_beta(depth+1, self.player, alpha, beta, prev_move)
-
-        if not depth:
-          heapq.heappush(self.scores, (-new_score, str(uuid4()), point))
         beta = min(beta, new_score)
         # Reset board
         self.board[point.board_num][point.pos] = '.'
@@ -171,12 +160,10 @@ class Agent:
       return beta
 
   def someone_won(self, player):
-    # print([self.someone_won_single(i, player) for i in range(len(self.board))])
     return any([self.someone_won_single(i, player) for i in range(len(self.board))])
 
   def someone_won_single(self, board_num, player):
     mini_board = self.board[board_num]
-    # print(mini_board)
     return True if ((mini_board[1] == mini_board[2] == mini_board[3]) and mini_board[1] == player) or \
                    ((mini_board[4] == mini_board[5] == mini_board[6]) and mini_board[4] == player) or \
                    ((mini_board[7] == mini_board[8] == mini_board[9]) and mini_board[7] == player) or \
@@ -186,7 +173,62 @@ class Agent:
                    ((mini_board[1] == mini_board[5] == mini_board[9]) and mini_board[1] == player) or \
                    ((mini_board[3] == mini_board[5] == mini_board[7]) and mini_board[3] == player) else False
 
+  def someone_won_mct(self, player, board):
+    return any([self.someone_won_single_mct(board, i, player) for i in range(1, len(board))])
 
+  def someone_won_single_mct(self, board, board_num, player):
+    mini_board = board[board_num]
+    return True if ((mini_board[1] == mini_board[2] == mini_board[3]) and mini_board[1] == player) or \
+                   ((mini_board[4] == mini_board[5] == mini_board[6]) and mini_board[4] == player) or \
+                   ((mini_board[7] == mini_board[8] == mini_board[9]) and mini_board[7] == player) or \
+                   ((mini_board[1] == mini_board[4] == mini_board[7]) and mini_board[1] == player) or \
+                   ((mini_board[2] == mini_board[5] == mini_board[8]) and mini_board[2] == player) or \
+                   ((mini_board[3] == mini_board[6] == mini_board[9]) and mini_board[3] == player) or \
+                   ((mini_board[1] == mini_board[5] == mini_board[9]) and mini_board[1] == player) or \
+                   ((mini_board[3] == mini_board[5] == mini_board[7]) and mini_board[3] == player) else False
+
+  def get_available_moves_mct(self, board, prev_move):
+    mini_board = board[prev_move]
+    # print(prev_move, mini_board)
+    available_moves = []
+    for i in range(1, len(mini_board)):
+      if mini_board[i] == '.':
+        available_moves.append(Point(prev_move, i))
+    return available_moves # if available_moves, then the game ends in a draw
+
+  def make_move_mct_board(self, board, point, player):
+    board[point.board_num][point.pos] = player
+    return board, point.pos 
+
+  def mct(self, board, prev_move):
+    N = 1000  # # number of rounds to search
+    count = 0
+    for _ in range(N):
+      player = self.player
+      opponent = 'x' if self.player == 'o' else 'o'
+      game_board = copy.deepcopy(board)
+      n_move = 0
+      while self.get_available_moves_mct(game_board, prev_move):
+        n_move += 1
+        next_move = random.choice(self.get_available_moves_mct(game_board, prev_move))
+        game_board, prev_move = self.make_move_mct_board(game_board, next_move, player)
+        player = 'x' if player == 'o' else 'o'
+        if self.someone_won_mct(self.player, game_board) or self.someone_won_mct(opponent, game_board):
+          break
+      if self.someone_won_mct(self.player, game_board):
+        count += 1
+    return count/N
+
+  def make_move_mct(self, prev_move):
+    opponent = 'x' if self.player == 'o' else 'o'
+    candidates = []
+    for move in self.get_available_moves(prev_move):
+      board = copy.deepcopy(self.board)
+      candidates.append((move.pos, self.mct(board, move.board_num)))
+    print(candidates)
+    random.shuffle(candidates)
+    best_move, best_move_score = max(candidates, key=lambda x: x[1])
+    return best_move
 
   def init(self):
     """On init, we reset everything? 
@@ -224,6 +266,28 @@ class Agent:
     result += self.print_board_row(7, 8, 9, 7, 8, 9)
     return result
 
+  def print_board_row_mct(self, board, a, b, c, i, j, k):
+    result = ''
+    result += ' {} {} {} |'.format(board[a][i], board[a][j], board[a][k])
+    result += ' {} {} {} |'.format(board[b][i], board[b][j], board[b][k])
+    result += ' {} {} {} |\n'.format(board[c][i], board[c][j], board[c][k])
+    return result
+
+  def print_board_mct(self, board):
+    result = ''
+    result += self.print_board_row_mct(board, 1, 2, 3, 1, 2, 3)
+    result += self.print_board_row_mct(board, 1, 2, 3, 4, 5, 6)
+    result += self.print_board_row_mct(board, 1, 2, 3, 7, 8, 9)
+    result += ' ------+-------+-------\n'
+    result += self.print_board_row_mct(board, 4, 5, 6, 1, 2, 3)
+    result += self.print_board_row_mct(board, 4, 5, 6, 4, 5, 6)
+    result += self.print_board_row_mct(board, 4, 5, 6, 7, 8, 9)
+    result += ' ------+-------+-------\n'
+    result += self.print_board_row_mct(board, 7, 8, 9, 1, 2, 3)
+    result += self.print_board_row_mct(board, 7, 8, 9, 4, 5, 6)
+    result += self.print_board_row_mct(board, 7, 8, 9, 7, 8, 9)
+    return result
+
   def start(self, player):
     self.reset_board()
     self.m = 0
@@ -240,7 +304,8 @@ class Agent:
     logger.info('Agent starting second move, board looks like:')
     logger.info(self.print_board())
 
-    this_move = self.make_best_move(prev_move)
+    # this_move = self.make_best_move(prev_move)
+    this_move = self.make_move_mct(prev_move)
 
     self.move[self.m] = this_move
     self.board[prev_move][this_move] = self.player
@@ -258,7 +323,8 @@ class Agent:
     logger.info('Agent starting third move, board looks like:')
     logger.info(self.print_board())
 
-    this_move = self.make_best_move(prev_move)
+    # this_move = self.make_best_move(prev_move)
+    this_move = self.make_move_mct(prev_move)
 
     self.move[self.m] = this_move
     self.board[self.move[self.m-1]][this_move] = self.player
@@ -275,7 +341,8 @@ class Agent:
     logger.info('Agent starting next move, board looks like:')
     logger.info(self.print_board())
 
-    this_move = self.make_best_move(prev_move)
+    # this_move = self.make_best_move(prev_move)
+    this_move = self.make_move_mct(prev_move)
 
     self.move[self.m] = this_move
     self.board[self.move[self.m-1]][this_move] = self.player
