@@ -244,11 +244,6 @@ class Agent:
     logger.info('Agent starting second move, board looks like:')
     logger.info(self.print_board())
 
-    legal_moves = self.get_available_moves(prev_move)
-    logger.debug('legal moves are: {}'.format([move.pos for move in legal_moves]))
-
-    # self.scores = []
-    # self.alpha_beta(0, self.player, -float('inf'), float('inf'), prev_move)
     this_move = self.make_best_move(prev_move)
 
     self.move[self.m] = this_move
@@ -267,11 +262,6 @@ class Agent:
     logger.info('Agent starting third move, board looks like:')
     logger.info(self.print_board())
 
-    legal_moves = self.get_available_moves(prev_move)
-    logger.debug('legal moves are: {}'.format([move.pos for move in legal_moves]))
-
-    # self.scores = []
-    # self.alpha_beta(0, self.player, -float('inf'), float('inf'), prev_move)
     this_move = self.make_best_move(prev_move)
 
     self.move[self.m] = this_move
@@ -289,11 +279,6 @@ class Agent:
     logger.info('Agent starting next move, board looks like:')
     logger.info(self.print_board())
 
-    legal_moves = self.get_available_moves(prev_move)
-    logger.debug('legal moves are: {}'.format([move.pos for move in legal_moves]))
-
-    # self.scores = []
-    # self.alpha_beta(0, self.player, -float('inf'), float('inf'), prev_move)
     this_move = self.make_best_move(prev_move)
 
     self.move[self.m] = this_move
