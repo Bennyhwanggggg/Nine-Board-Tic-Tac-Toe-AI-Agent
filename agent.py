@@ -18,7 +18,7 @@ LOG_FORMAT = "%(levelname)s:\n%(message)s"
 logging.basicConfig(format=LOG_FORMAT)
 logger = logging.getLogger(__name__)
 # Change the level to logging.DEBUG or logging.INFO for more messages on console. logging.ERROR or logging.WARNING to hide
-logger.setLevel(level=logging.ERROR)
+logger.setLevel(level=logging.INFO)
 
 class Point:
   def __init__(self, board_num, pos):
@@ -75,19 +75,17 @@ class Agent:
 
     # Check who has the advantage and return a relative score
     if player_lose == 3:
-      return -100
+      return -1000
     elif player_win == 3:
-      return 100
+      return 1000
     elif player_win == 0 and player_lose == 2:
-      return -30
+      return -100
     elif player_win == 2 and player_lose == 0:
-      return 30
+      return 100
     elif player_win == 0 and player_lose == 1:
-      return -1
+      return -10
     elif player_win == 1 and player_lose == 0:
-      return 1
-    # elif player_win == 1 and player_lose == 1:
-    #   return 5
+      return 10
     return 0  # No one has an advantage in other cases so return a neutral value
 
   def get_available_moves(self, prev_move):
@@ -117,16 +115,71 @@ class Agent:
     point = heapq.heappop(self.scores)[2]
     return point.pos
 
+  def alphabeta_cutoff_search(self, prev_move):
+
+    def evalulate_board():
+      return sum([self.calculate_heuristic_score(self.board[i]) for i in range(1, len(self.board))])
+    
+    def max_value(prev_move, player, alpha, beta, depth):
+      available_moves = self.get_available_moves(prev_move)
+      opponent = 'o' if self.player == 'x' else 'x'
+      next_player = 'o' if player == 'x' else 'o'
+      if depth == self.max_depth or \
+        self.someone_won(player) or \
+        self.someone_won(opponent) or \
+        not available_moves:
+        return evalulate_board()
+      v = -float('inf')
+      for point in available_moves:
+        prev_move = self.make_move(point, player)
+        v = max(v, min_value(prev_move, next_player, alpha, beta, depth+1))
+        self.board[point.board_num][point.pos] = '.'
+        if v >= beta:
+          return v
+        alpha = max(alpha, v)
+      return v
+
+    def min_value(prev_move, player, alpha, beta, depth):
+      available_moves = self.get_available_moves(prev_move)
+      opponent = 'o' if self.player == 'x' else 'x'
+      next_player = 'o' if player == 'x' else 'o'
+      if depth == self.max_depth or \
+        self.someone_won(player) or \
+        self.someone_won(opponent) or \
+        not available_moves:
+        return evalulate_board()
+      v = float('inf')
+      for point in available_moves:
+        rev_move = self.make_move(point, player)
+        v = min(v, max_value(prev_move, next_player, alpha, beta, depth+1))
+        self.board[point.board_num][point.pos] = '.'
+        if v <= alpha:
+          return v
+        beta = min(beta, v)
+      return v
+
+    available_moves = self.get_available_moves(prev_move)
+    best_move_score = -float('inf')
+    best_move = None
+    next_player = 'x' if self.player == 'o' else 'x'
+    for point in available_moves:
+      v = min_value(point.pos, next_player, -float('inf'), float('inf'), 1)
+      if v > best_move_score:
+        best_move_score = v
+        best_move = point.pos
+    return best_move
+
+
   def alpha_beta(self, depth, player, alpha, beta, prev_move):
     available_moves = self.get_available_moves(prev_move)
     opponent = 'o' if self.player == 'x' else 'x'
+    next_player = 'o' if player == 'x' else 'o'
     # terminate early if we already found a winning move
     if self.someone_won(self.player):
       return float('inf')
-    else:
-      if self.someone_won(opponent):
-        return -float('inf')
-    if not available_moves:
+    elif self.someone_won(opponent):
+      return -float('inf')
+    elif not available_moves:
       return 0
     # Call heursitic to evaluate the score straight away when max depth reached.
     if depth == self.max_depth:
@@ -134,46 +187,26 @@ class Agent:
       total_score = 0
       for i in range(1, len(self.board)):
         total_score += self.calculate_heuristic_score(self.board[i])
-      return total_score # if player == self.player else -total_score
+      return total_score
 
-    if player == self.player:
-      bound = alpha
-      for point in available_moves:
-        prev_move = self.make_move(point, player)
-        # Recursive call to update alpha
-        new_score = self.alpha_beta(depth+1, opponent, alpha, beta, prev_move)
-        # Update list of scores when we have recursed back to the top
-        if not depth:
-          heapq.heappush(self.scores, (-new_score, str(uuid4()), point))
-
-        # bound = max(bound, new_score)
+    for point in available_moves:
+      prev_move = self.make_move(point, player)
+      # Recursive call to update alpha
+      new_score = self.alpha_beta(depth+1, next_player, alpha, beta, prev_move)
+      # Update list of scores when we have recursed back to the top
+      if not depth:
+        heapq.heappush(self.scores, (-new_score, str(uuid4()), point))
+      # Reset board
+      self.board[point.board_num][point.pos] = '.'
+      if player == self.player:
         alpha = max(alpha, new_score)
-        # Reset board
-        self.board[point.board_num][point.pos] = '.'
-        # if bound >= beta:
         if alpha >= beta:
           return alpha
-      # return bound
-      return alpha
-    else:
-      bound = beta
-      for point in available_moves:
-        prev_move = self.make_move(point, player)
-        # Recursive call to update alpha
-        new_score = self.alpha_beta(depth+1, self.player, alpha, beta, prev_move)
-
-        if not depth:
-          heapq.heappush(self.scores, (-new_score, str(uuid4()), point))
-
-        # bound = min(bound, new_score)
+      else:
         beta = min(beta, new_score)
-        # Reset board
-        self.board[point.board_num][point.pos] = '.'
-        # if bound <= alpha:
         if beta <= alpha:
           return beta
-      # return bound
-      return beta
+    return alpha if player == self.player else beta
 
   def someone_won(self, player):
     # print([self.someone_won_single(i, player) for i in range(len(self.board))])
@@ -248,9 +281,10 @@ class Agent:
     legal_moves = self.get_available_moves(prev_move)
     logger.debug('legal moves are: {}'.format([move.pos for move in legal_moves]))
 
-    self.scores = []
-    self.alpha_beta(0, self.player, -float('inf'), float('inf'), prev_move)
-    this_move = self.make_best_move()
+    # self.scores = []
+    # self.alpha_beta(0, self.player, -float('inf'), float('inf'), prev_move)
+    # this_move = self.make_best_move()
+    this_move = self.alphabeta_cutoff_search(prev_move)
 
     self.move[self.m] = this_move
     self.board[prev_move][this_move] = self.player
@@ -271,9 +305,10 @@ class Agent:
     legal_moves = self.get_available_moves(prev_move)
     logger.debug('legal moves are: {}'.format([move.pos for move in legal_moves]))
 
-    self.scores = []
-    self.alpha_beta(0, self.player, -float('inf'), float('inf'), prev_move)
-    this_move = self.make_best_move()
+    # self.scores = []
+    # self.alpha_beta(0, self.player, -float('inf'), float('inf'), prev_move)
+    # this_move = self.make_best_move()
+    this_move = self.alphabeta_cutoff_search(prev_move)
 
     self.move[self.m] = this_move
     self.board[self.move[self.m-1]][this_move] = self.player
@@ -293,9 +328,10 @@ class Agent:
     legal_moves = self.get_available_moves(prev_move)
     logger.debug('legal moves are: {}'.format([move.pos for move in legal_moves]))
 
-    self.scores = []
-    self.alpha_beta(0, self.player, -float('inf'), float('inf'), prev_move)
-    this_move = self.make_best_move()
+    # self.scores = []
+    # self.alpha_beta(0, self.player, -float('inf'), float('inf'), prev_move)
+    # this_move = self.make_best_move()
+    this_move = self.alphabeta_cutoff_search(prev_move)
 
     self.move[self.m] = this_move
     self.board[self.move[self.m-1]][this_move] = self.player
@@ -382,13 +418,14 @@ if __name__ == '__main__':
       break
     commands = data.split('\n')
     for command in commands:
-      print('Recieved from server:', command)
+      # print('Recieved from server:', command)
       response = agent.process_data(command)
       if response is not None:
-        print('Sending to server:', response)
+        # print('Sending to server:', response)
         client.send('{}\n'.format(str(response)).encode())
       else:
-        print('The previous command: {} -- required no response'.format(command))
+        # print('The previous command: {} -- required no response'.format(command))
+        continue
 
 
     
