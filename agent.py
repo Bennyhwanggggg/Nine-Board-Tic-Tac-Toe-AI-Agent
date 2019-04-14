@@ -85,7 +85,7 @@ class Agent:
     if player_lose == 3:
       return -1000*bonus
     elif player_win == 3:
-      return 1000*bonus
+      return 10000*bonus
     elif player_win == 0 and player_lose == 2:
       return -30*bonus
     elif player_win == 2 and player_lose == 0:
@@ -128,7 +128,7 @@ class Agent:
     # terminate early if we already found a winning move. Give winning move with 
     # a short depth more score
     if self.someone_won(self.player):
-      return 100000*(self.max_depth+1 - depth)
+      return 1000000*(self.max_depth+1 - depth)
     else:
       if self.someone_won(opponent):
         return -100000*(self.max_depth+1 - depth)
@@ -136,6 +136,8 @@ class Agent:
       return 0
     # Call heursitic to evaluate the score straight away when max depth reached.
     if depth == self.max_depth:
+      # _, best_move_score = self.make_move_mct(prev_move)
+      # return best_move_score
       return sum([self.calculate_heuristic_score(self.board[i]) for i in range(1, len(self.board))])
 
     if player == self.player:
@@ -201,7 +203,7 @@ class Agent:
     return board, point.pos 
 
   def mct(self, board, prev_move):
-    N = 1000  # # number of rounds to search
+    N = 100  # # number of rounds to search
     count = 0
     for _ in range(N):
       player = self.player
@@ -228,7 +230,7 @@ class Agent:
     print(candidates)
     random.shuffle(candidates)
     best_move, best_move_score = max(candidates, key=lambda x: x[1])
-    return best_move
+    return best_move, best_move_score
 
   def init(self):
     """On init, we reset everything? 
