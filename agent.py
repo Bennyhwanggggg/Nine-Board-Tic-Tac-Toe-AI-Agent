@@ -19,7 +19,7 @@ LOG_FORMAT = "%(levelname)s:\n%(message)s"
 logging.basicConfig(format=LOG_FORMAT)
 logger = logging.getLogger(__name__)
 # Change the level to logging.DEBUG or logging.INFO for more messages on console. logging.ERROR or logging.WARNING to hide
-logger.setLevel(level=logging.ERROR)
+logger.setLevel(level=logging.INFO)
 
 class Point:
   def __init__(self, board_num, pos):
@@ -38,11 +38,16 @@ class Agent:
     self.max_depth = MAX_DEPTH
     self.center = set([5])
     self.corners = set([1, 3, 7, 9])
+    self.seen_large = dict()
+    self.seen_small = dict()
+    self.step_count = 0
 
   def calculate_heuristic_score(self, mini_board):
     """Calculate the heuristic function's value
     score = Number of row/column/diagonal opponent can win -  Number of row/column/diagonal player can win 
     """
+    if str(mini_board) in self.seen_small:
+      return self.seen_small[str(mini_board)], self.seen_small
     score = 0
     # row score
     score += self.calculate_score(1, 2, 3, mini_board)
@@ -55,7 +60,8 @@ class Agent:
     # diagonal score
     score += self.calculate_score(1, 5, 9, mini_board)
     score += self.calculate_score(3, 5, 7, mini_board)
-    return score
+    self.seen_small[str(mini_board)] = score
+    return score, self.seen_small
 
   def calculate_score(self, idx1, idx2, idx3, mini_board):
     a, b, c = mini_board[idx1], mini_board[idx2], mini_board[idx3]
@@ -114,7 +120,7 @@ class Agent:
     opponent = 'o' if self.player == 'x' else 'x'
     for point in available_moves:
       prev_move = self.make_move(point, self.player)
-      move_score = self.alpha_beta(1, opponent, -float('inf'), float('inf'), prev_move)
+      move_score, self.seen_large = self.alpha_beta(1, opponent, -float('inf'), float('inf'), prev_move)
       self.board[point.board_num][point.pos] = '.'
       if move_score > best_move_score:
         best_moves, best_move_score = [point.pos], move_score
@@ -128,38 +134,46 @@ class Agent:
     # terminate early if we already found a winning move. Give winning move with 
     # a short depth more score
     if self.someone_won(self.player):
-      return 1000000*(self.max_depth+1 - depth)
+      return 1000000*(self.max_depth+1 - depth), self.seen_large
     else:
       if self.someone_won(opponent):
-        return -100000*(self.max_depth+1 - depth)
+        return -100000*(self.max_depth+1 - depth), self.seen_large
     if not available_moves:
-      return 0
+      return 0, self.seen_large
     # Call heursitic to evaluate the score straight away when max depth reached.
     if depth == self.max_depth:
       # _, best_move_score = self.make_move_mct(prev_move)
       # return best_move_score
-      return sum([self.calculate_heuristic_score(self.board[i]) for i in range(1, len(self.board))])
+      if str(self.board) not in self.seen_large:
+        score = 0
+        for i in range(1, len(self.board)):
+          result, self.seen_small = self.calculate_heuristic_score(self.board[i])
+          score += result
+        self.seen_large[str(self.board)] = score
+      else:
+        score = self.seen_large[str(self.board)]
+      return score, self.seen_large
 
     if player == self.player:
       for point in available_moves:
         prev_move = self.make_move(point, player)
-        new_score = self.alpha_beta(depth+1, opponent, alpha, beta, prev_move)
+        new_score, self.seen_large = self.alpha_beta(depth+1, opponent, alpha, beta, prev_move)
         alpha = max(alpha, new_score)
         # Reset board
         self.board[point.board_num][point.pos] = '.'
         if alpha >= beta:
-          return alpha
-      return alpha
+          return alpha, self.seen_large
+      return alpha, self.seen_large
     else:
       for point in available_moves:
         prev_move = self.make_move(point, player)
-        new_score = self.alpha_beta(depth+1, self.player, alpha, beta, prev_move)
+        new_score, self.seen_large = self.alpha_beta(depth+1, self.player, alpha, beta, prev_move)
         beta = min(beta, new_score)
         # Reset board
         self.board[point.board_num][point.pos] = '.'
         if beta <= alpha:
-          return beta
-      return beta
+          return beta, self.seen_large
+      return beta, self.seen_large
 
   def someone_won(self, player):
     return any([self.someone_won_single(i, player) for i in range(len(self.board))])
@@ -340,6 +354,9 @@ class Agent:
     opponent = 'o' if self.player == 'x' else 'x'
     self.board[self.move[self.m-1]][self.move[self.m]] = opponent
     self.m+=1
+    self.step_count+=1
+    if not self.step_count%6 and self.max_depth < 13:
+      self.max_depth += 1
     logger.info('Agent starting next move, board looks like:')
     logger.info(self.print_board())
 
