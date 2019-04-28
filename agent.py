@@ -19,7 +19,7 @@ LOG_FORMAT = "%(levelname)s:\n%(message)s"
 logging.basicConfig(format=LOG_FORMAT)
 logger = logging.getLogger(__name__)
 # Change the level to logging.DEBUG or logging.INFO for more messages on console. logging.ERROR or logging.WARNING to hide
-logger.setLevel(level=logging.INFO)
+logger.setLevel(level=logging.ERROR)
 
 class Point:
   def __init__(self, board_num, pos):
@@ -355,7 +355,7 @@ class Agent:
     self.board[self.move[self.m-1]][self.move[self.m]] = opponent
     self.m+=1
     self.step_count+=1
-    if not self.step_count%6 and self.max_depth < 13:
+    if not self.step_count%7 and self.max_depth < 20:
       self.max_depth += 1
     logger.info('Agent starting next move, board looks like:')
     logger.info(self.print_board())
