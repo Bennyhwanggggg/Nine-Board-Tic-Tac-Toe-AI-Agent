@@ -41,6 +41,14 @@ class Agent:
     self.seen_large = dict()
     self.seen_small = dict()
     self.step_count = 0
+    # self.precompute_small()
+
+  def precompute_small(self):
+    board = [[]]
+    for comb in itertools.product(['x', 'o', '.'], repeat=9):
+      mini_board = ['.']
+      mini_board.extend(list(comb))
+      self.seen_small[str(mini_board)] = self.calculate_heuristic_score(mini_board)
 
   def calculate_heuristic_score(self, mini_board):
     """Calculate the heuristic function's value
@@ -189,63 +197,6 @@ class Agent:
                    ((mini_board[1] == mini_board[5] == mini_board[9]) and mini_board[1] == player) or \
                    ((mini_board[3] == mini_board[5] == mini_board[7]) and mini_board[3] == player) else False
 
-  def someone_won_mct(self, player, board):
-    return any([self.someone_won_single_mct(board, i, player) for i in range(1, len(board))])
-
-  def someone_won_single_mct(self, board, board_num, player):
-    mini_board = board[board_num]
-    return True if ((mini_board[1] == mini_board[2] == mini_board[3]) and mini_board[1] == player) or \
-                   ((mini_board[4] == mini_board[5] == mini_board[6]) and mini_board[4] == player) or \
-                   ((mini_board[7] == mini_board[8] == mini_board[9]) and mini_board[7] == player) or \
-                   ((mini_board[1] == mini_board[4] == mini_board[7]) and mini_board[1] == player) or \
-                   ((mini_board[2] == mini_board[5] == mini_board[8]) and mini_board[2] == player) or \
-                   ((mini_board[3] == mini_board[6] == mini_board[9]) and mini_board[3] == player) or \
-                   ((mini_board[1] == mini_board[5] == mini_board[9]) and mini_board[1] == player) or \
-                   ((mini_board[3] == mini_board[5] == mini_board[7]) and mini_board[3] == player) else False
-
-  def get_available_moves_mct(self, board, prev_move):
-    mini_board = board[prev_move]
-    # print(prev_move, mini_board)
-    available_moves = []
-    for i in range(1, len(mini_board)):
-      if mini_board[i] == '.':
-        available_moves.append(Point(prev_move, i))
-    return available_moves # if available_moves, then the game ends in a draw
-
-  def make_move_mct_board(self, board, point, player):
-    board[point.board_num][point.pos] = player
-    return board, point.pos 
-
-  def mct(self, board, prev_move):
-    N = 100  # # number of rounds to search
-    count = 0
-    for _ in range(N):
-      player = self.player
-      opponent = 'x' if self.player == 'o' else 'o'
-      game_board = copy.deepcopy(board)
-      n_move = 0
-      while self.get_available_moves_mct(game_board, prev_move):
-        n_move += 1
-        next_move = random.choice(self.get_available_moves_mct(game_board, prev_move))
-        game_board, prev_move = self.make_move_mct_board(game_board, next_move, player)
-        player = 'x' if player == 'o' else 'o'
-        if self.someone_won_mct(self.player, game_board) or self.someone_won_mct(opponent, game_board):
-          break
-      if self.someone_won_mct(self.player, game_board):
-        count += 1
-    return count/N
-
-  def make_move_mct(self, prev_move):
-    opponent = 'x' if self.player == 'o' else 'o'
-    candidates = []
-    for move in self.get_available_moves(prev_move):
-      board = copy.deepcopy(self.board)
-      candidates.append((move.pos, self.mct(board, move.board_num)))
-    print(candidates)
-    random.shuffle(candidates)
-    best_move, best_move_score = max(candidates, key=lambda x: x[1])
-    return best_move, best_move_score
-
   def init(self):
     """On init, we reset everything? 
     not sure if we need to set random seed like agent.c
@@ -355,8 +306,9 @@ class Agent:
     self.board[self.move[self.m-1]][self.move[self.m]] = opponent
     self.m+=1
     self.step_count+=1
-    if not self.step_count%7 and self.max_depth < 20:
-      self.max_depth += 1
+    if self.step_count>7 and self.max_depth < 17:
+      if not self.step_count%4:
+        self.max_depth += 1
     logger.info('Agent starting next move, board looks like:')
     logger.info(self.print_board())
 
