@@ -1,4 +1,67 @@
 #!/usr/bin/python3
+"""
+  COMP9414 Assignment 3:  Nine-Board Tic-Tac-Toe
+  Team name: WhateverWeLike
+  Team member:
+    - Kuan-Chun Hwang - SID: z5175539
+    - Zhounan Wang    - SID: z5179018
+
+  This program can be run by:
+    python3 agent.py -p <port number>
+  
+  Design and data structure:
+  When the above line is called, it attempts to connect to the port specified and waits
+  for instruction from the server. After recieving instruction from the server, we use 
+  regular expression to process the message from server and call the relevant function related 
+  to that message.
+
+  We also used a custom data structure called Point to store each point such that they all have a 
+  board number and the position they are on that board. This was created to make computation and
+  information passing easy. 
+
+  During initialisation, we set a board using a 10x10 matrix with the 0th index not being 
+  used. This design choice was made because the server sends instructions from 1 to 9 and 
+  not 0 to 8 so we chose to follow the same scheme instead of doing our own translation, 
+  even though this causes some more wasted space. In init, we initialise the 9 smaller boards
+  each store in an array of length 10. We then set the agent to the player the server instructed
+  as to be. We also precompute all possible score for a small board during initialisation for
+  time efficiency after.
+
+  When recieving a move from opponent, the program first put that move onto the board inside 
+  the agent's memory. We then explore all possible moves based on the opponent's move. For example,
+  when the opponent place in cell 1 of a small board, in our next move, we can only choose an 
+  available space inside board 1 of the whole game board. After getting all available moves, 
+  we start our alpha beta pruning tree search. 
+
+  Algorithm:
+  Our agent uses alpha beta pruning to identify the best possible move in the current scenario.
+  At each step, our heuristic function evaluate all the smaller board's score and then we sum
+  everything to get the score of the whole game board. In the small board score calculation,
+  we give a board a very large score if we win the board, which is also the game, or a 
+  very small score if we lost the board. Then for the cases where we have an edge, we give it
+  a higher score based on how much advantage we have. Vice versa, we do the opposite for boards
+  where we have an disadvantage. We also give bonuses to those score such that if the position 
+  held was the center, we give it a higher multiplicative bonus and if it was in the corder, we
+  give it a smaller multiplicative bonus. We compute advantage and disadvantage by counting how
+  many X's and O's are on each row, column and diagonal of the board.
+
+  Also, at each depth of recursion, if we can win the game we give it a super large score multiplied 
+  by maxdepth - current depth. This will make the agent priortise the shorter paths to win and avoid
+  shorter paths to lose. We also give a positive score if there is no available move such that our 
+  agent will also try to go for draws instead. This decision was made to prioritise not losing instead
+  of always wanting to win. Also, when we calculate the whole game board score, we also store the 
+  score of this board. This should save up some computation time such that we don't need to keep repetitively
+  looking at boards we have already computed before. Finally, at last from alpha beta pruning, we 
+  get the move with the best score. In the cases where there are multiple best moves, we randomly
+  select one.
+
+  We also do increasing in recursion depth as the game goes. Initially, when the game just started,
+  there are too many paths to explore so it is very easy to time out. However, as the game goes on,
+  we can start increasing the depth limit since there are less path now. This also increase the 
+  strength of the agent since it can see further into the future now. We increase depth after 9 moves
+  and then after that we increase by 1 every 3 moves. If we reach more then 17 moves, we increase
+  by 2 every time. These depth variation values were found based on trial and error testing.
+"""
 
 import sys
 import argparse
@@ -7,19 +70,11 @@ import re
 import time
 import random
 import datetime
-import heapq
-import logging
+import itertools
 import copy
-from uuid import uuid4
 
 MAX_MOVE = 81
 MAX_DEPTH = 6
-
-LOG_FORMAT = "%(levelname)s:\n%(message)s"
-logging.basicConfig(format=LOG_FORMAT)
-logger = logging.getLogger(__name__)
-# Change the level to logging.DEBUG or logging.INFO for more messages on console. logging.ERROR or logging.WARNING to hide
-logger.setLevel(level=logging.ERROR)
 
 class Point:
   def __init__(self, board_num, pos):
@@ -41,14 +96,13 @@ class Agent:
     self.seen_large = dict()
     self.seen_small = dict()
     self.step_count = 0
-    # self.precompute_small()
 
   def precompute_small(self):
     board = [[]]
     for comb in itertools.product(['x', 'o', '.'], repeat=9):
       mini_board = ['.']
       mini_board.extend(list(comb))
-      self.seen_small[str(mini_board)] = self.calculate_heuristic_score(mini_board)
+      self.seen_small[str(mini_board)], _ = self.calculate_heuristic_score(mini_board)
 
   def calculate_heuristic_score(self, mini_board):
     """Calculate the heuristic function's value
@@ -147,11 +201,9 @@ class Agent:
       if self.someone_won(opponent):
         return -100000*(self.max_depth+1 - depth), self.seen_large
     if not available_moves:
-      return 0, self.seen_large
+      return 100, self.seen_large
     # Call heursitic to evaluate the score straight away when max depth reached.
     if depth == self.max_depth:
-      # _, best_move_score = self.make_move_mct(prev_move)
-      # return best_move_score
       if str(self.board) not in self.seen_large:
         score = 0
         for i in range(1, len(self.board)):
@@ -205,7 +257,6 @@ class Agent:
     self.player, self.m = None, None
     self.move = [-1]*MAX_MOVE
     self.result, self.cause = None, None
-    logger.info('Agent initalised')
     return None
   
   def reset_board(self):
@@ -233,34 +284,12 @@ class Agent:
     result += self.print_board_row(7, 8, 9, 7, 8, 9)
     return result
 
-  def print_board_row_mct(self, board, a, b, c, i, j, k):
-    result = ''
-    result += ' {} {} {} |'.format(board[a][i], board[a][j], board[a][k])
-    result += ' {} {} {} |'.format(board[b][i], board[b][j], board[b][k])
-    result += ' {} {} {} |\n'.format(board[c][i], board[c][j], board[c][k])
-    return result
-
-  def print_board_mct(self, board):
-    result = ''
-    result += self.print_board_row_mct(board, 1, 2, 3, 1, 2, 3)
-    result += self.print_board_row_mct(board, 1, 2, 3, 4, 5, 6)
-    result += self.print_board_row_mct(board, 1, 2, 3, 7, 8, 9)
-    result += ' ------+-------+-------\n'
-    result += self.print_board_row_mct(board, 4, 5, 6, 1, 2, 3)
-    result += self.print_board_row_mct(board, 4, 5, 6, 4, 5, 6)
-    result += self.print_board_row_mct(board, 4, 5, 6, 7, 8, 9)
-    result += ' ------+-------+-------\n'
-    result += self.print_board_row_mct(board, 7, 8, 9, 1, 2, 3)
-    result += self.print_board_row_mct(board, 7, 8, 9, 4, 5, 6)
-    result += self.print_board_row_mct(board, 7, 8, 9, 7, 8, 9)
-    return result
-
   def start(self, player):
     self.reset_board()
     self.m = 0
     self.move[self.m] = 0
     self.player = player
-    logger.info('Agent is starting. Player is: {}'.format(self.player))
+    self.precompute_small()
     return None
 
   def second_move(self, board_num, prev_move):
@@ -268,16 +297,11 @@ class Agent:
     opponent = 'o' if self.player == 'x' else 'x'
     self.board[board_num][prev_move] = opponent
     self.m = 2
-    logger.info('Agent starting second move, board looks like:')
-    logger.info(self.print_board())
 
     this_move = self.make_best_move(prev_move)
-    # this_move = self.make_move_mct(prev_move)
 
     self.move[self.m] = this_move
     self.board[prev_move][this_move] = self.player
-    logger.info('Agent ran second move with the best move being: {}\nThe board now looks like:'.format(this_move))
-    logger.info(self.print_board())
     return this_move
 
 
@@ -287,16 +311,12 @@ class Agent:
     self.board[board_num][first_move] = self.player
     self.board[first_move][prev_move] = opponent
     self.m = 3
-    logger.info('Agent starting third move, board looks like:')
-    logger.info(self.print_board())
+    self.step_count += 1
 
     this_move = self.make_best_move(prev_move)
-    # this_move = self.make_move_mct(prev_move)
 
     self.move[self.m] = this_move
     self.board[self.move[self.m-1]][this_move] = self.player
-    logger.info('Agent ran third move with the best move being: {}\nThe board now looks like:'.format(this_move))
-    logger.info(self.print_board())
     return this_move
 
   def next_move(self, prev_move):
@@ -306,27 +326,22 @@ class Agent:
     self.board[self.move[self.m-1]][self.move[self.m]] = opponent
     self.m+=1
     self.step_count+=1
-    if self.step_count>7 and self.max_depth < 17:
-      if not self.step_count%4:
+    if self.step_count>8:
+      if not self.step_count%3 and self.step_count < 16:
         self.max_depth += 1
-    logger.info('Agent starting next move, board looks like:')
-    logger.info(self.print_board())
+      elif not self.step_count%2 and self.step_count >= 17:
+        self.max_depth += 1
 
     this_move = self.make_best_move(prev_move)
-    # this_move = self.make_move_mct(prev_move)
 
     self.move[self.m] = this_move
     self.board[self.move[self.m-1]][this_move] = self.player
-    logger.info('Agent ran next move with the best move being: {}\nThe board now looks like:'.format(this_move))
-    logger.info(self.print_board())
     return this_move
 
   def last_move(self, prev_move):
     self.m+=1
     self.move[self.m] = prev_move
     self.board[self.move[self.m-1]][self.move[self.m]] = 'o' if self.player == 'x' else 'x'
-    logger.info('Agent ran last move and the board now looks like:')
-    logger.info(self.print_board())
 
   def win(self, cause):
     self.result = 'WIN'
@@ -344,7 +359,6 @@ class Agent:
     print('>'*50, self.result)
 
   def end(self):
-    logger.info('Agent closing.')
     sys.exit()
 
   def process_data(self, data):
@@ -400,14 +414,6 @@ if __name__ == '__main__':
       break
     commands = data.split('\n')
     for command in commands:
-      # print('Recieved from server:', command)
       response = agent.process_data(command)
       if response is not None:
-        # print('Sending to server:', response)
         client.send('{}\n'.format(str(response)).encode())
-      else:
-        # print('The previous command: {} -- required no response'.format(command))
-        continue
-
-
-    
