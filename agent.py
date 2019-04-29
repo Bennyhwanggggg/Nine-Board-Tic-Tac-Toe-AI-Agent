@@ -345,17 +345,17 @@ class Agent:
   def win(self, cause):
     self.result = 'WIN'
     self.cause = cause
-    print('>'*50, self.result)
+    # print('>'*50, self.result)
 
   def loss(self, cause):
     self.result = 'LOSS'
     self.cause = cause
-    print('>'*50, self.result)
+    # print('>'*50, self.result)
 
   def draw(self, cause):
     self.result = 'DRAW'
     self.cause = cause
-    print('>'*50, self.result)
+    # print('>'*50, self.result)
 
   def end(self):
     sys.exit()
