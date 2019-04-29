@@ -62,7 +62,6 @@
   and then after that we increase by 1 every 3 moves. If we reach more then 17 moves, we increase
   by 2 every time. These depth variation values were found based on trial and error testing.
 """
-
 import sys
 import argparse
 import socket
@@ -102,14 +101,14 @@ class Agent:
     for comb in itertools.product(['x', 'o', '.'], repeat=9):
       mini_board = ['.']
       mini_board.extend(list(comb))
-      self.seen_small[str(mini_board)], _ = self.calculate_heuristic_score(mini_board)
+      self.seen_small[str(mini_board)] = self.calculate_heuristic_score(mini_board)
 
   def calculate_heuristic_score(self, mini_board):
     """Calculate the heuristic function's value
     score = Number of row/column/diagonal opponent can win -  Number of row/column/diagonal player can win 
     """
     if str(mini_board) in self.seen_small:
-      return self.seen_small[str(mini_board)], self.seen_small
+      return self.seen_small[str(mini_board)]
     score = 0
     # row score
     score += self.calculate_score(1, 2, 3, mini_board)
@@ -123,7 +122,7 @@ class Agent:
     score += self.calculate_score(1, 5, 9, mini_board)
     score += self.calculate_score(3, 5, 7, mini_board)
     self.seen_small[str(mini_board)] = score
-    return score, self.seen_small
+    return score
 
   def calculate_score(self, idx1, idx2, idx3, mini_board):
     a, b, c = mini_board[idx1], mini_board[idx2], mini_board[idx3]
@@ -182,7 +181,7 @@ class Agent:
     opponent = 'o' if self.player == 'x' else 'x'
     for point in available_moves:
       prev_move = self.make_move(point, self.player)
-      move_score, self.seen_large = self.alpha_beta(1, opponent, -float('inf'), float('inf'), prev_move)
+      move_score = self.alpha_beta(1, opponent, -float('inf'), float('inf'), prev_move)
       self.board[point.board_num][point.pos] = '.'
       if move_score > best_move_score:
         best_moves, best_move_score = [point.pos], move_score
@@ -196,44 +195,43 @@ class Agent:
     # terminate early if we already found a winning move. Give winning move with 
     # a short depth more score
     if self.someone_won(self.player):
-      return 1000000*(self.max_depth+1 - depth), self.seen_large
+      return 1000000*(self.max_depth+1 - depth)
     else:
       if self.someone_won(opponent):
-        return -100000*(self.max_depth+1 - depth), self.seen_large
+        return -100000*(self.max_depth+1 - depth)
     if not available_moves:
-      return 100, self.seen_large
+      return 1000
     # Call heursitic to evaluate the score straight away when max depth reached.
     if depth == self.max_depth:
       if str(self.board) not in self.seen_large:
         score = 0
         for i in range(1, len(self.board)):
-          result, self.seen_small = self.calculate_heuristic_score(self.board[i])
-          score += result
+          score += self.calculate_heuristic_score(self.board[i])
         self.seen_large[str(self.board)] = score
       else:
         score = self.seen_large[str(self.board)]
-      return score, self.seen_large
+      return score
 
     if player == self.player:
       for point in available_moves:
         prev_move = self.make_move(point, player)
-        new_score, self.seen_large = self.alpha_beta(depth+1, opponent, alpha, beta, prev_move)
+        new_score = self.alpha_beta(depth+1, opponent, alpha, beta, prev_move)
         alpha = max(alpha, new_score)
         # Reset board
         self.board[point.board_num][point.pos] = '.'
         if alpha >= beta:
-          return alpha, self.seen_large
-      return alpha, self.seen_large
+          return alpha
+      return alpha
     else:
       for point in available_moves:
         prev_move = self.make_move(point, player)
-        new_score, self.seen_large = self.alpha_beta(depth+1, self.player, alpha, beta, prev_move)
+        new_score = self.alpha_beta(depth+1, self.player, alpha, beta, prev_move)
         beta = min(beta, new_score)
         # Reset board
         self.board[point.board_num][point.pos] = '.'
         if beta <= alpha:
-          return beta, self.seen_large
-      return beta, self.seen_large
+          return beta
+      return beta
 
   def someone_won(self, player):
     return any([self.someone_won_single(i, player) for i in range(len(self.board))])
@@ -326,10 +324,11 @@ class Agent:
     self.board[self.move[self.m-1]][self.move[self.m]] = opponent
     self.m+=1
     self.step_count+=1
+    # depth variaiton
     if self.step_count>8:
       if not self.step_count%3 and self.step_count < 16:
         self.max_depth += 1
-      elif not self.step_count%2 and self.step_count >= 17:
+      elif not self.step_count%2 and self.step_count >= 17 and self.max_depth < 14:
         self.max_depth += 1
 
     this_move = self.make_best_move(prev_move)
